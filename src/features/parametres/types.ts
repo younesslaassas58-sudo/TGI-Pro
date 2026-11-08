@@ -7,10 +7,25 @@ export type DocumentNumberType =
   | 'intervention'
   | 'client'
   | 'ascenseur'
+  | 'article'
+  | 'fournisseur'
+  | 'bon_commande_client'
+  | 'bon_commande_fournisseur'
+  | 'bon_livraison'
   | 'fiche_client'
   | 'fiche_ascenseur'
   | 'technicien'
   | 'fiche_technicien'
+  | 'contrat'
+  | 'releve'
+  | 'relance'
+  | 'mouvement_stock'
+  | 'inventaire'
+  | 'bon_entree'
+  | 'bon_sortie'
+  | 'bon_transfert'
+  | 'bon_intervention'
+  | 'rapport_intervention'
 
 export type DocumentFont = 'Helvetica' | 'Times-Roman' | 'Courier'
 export type HeaderLogoPosition = 'gauche' | 'droite'
@@ -67,5 +82,6 @@ export interface CompanySettings {
     showBankDetails: boolean
     showLegalMentions: boolean
   }
+  autoriserStockNegatif: boolean
   numbering: Record<DocumentNumberType, DocumentNumberSetting>
 }

@@ -17,7 +17,7 @@ function fields(id: string, values: Array<[string, string | number]>): DocumentS
   return { id, title: id, kind: 'fields', content: '', fields: content }
 }
 
-function baseModel(
+export function baseModel(
   issuer: CompanySettings,
   title: string,
   number: string,

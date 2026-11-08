@@ -36,6 +36,7 @@ export function PdfDocument({ model }: { model: DocumentModel }) {
   const primary = cleanColor(model.issuer.documentAppearance.primaryColor)
   const accent = cleanColor(model.options.accentColor)
   const horizontal = model.options.orientation === 'landscape'
+  const isPriceFreeDelivery = model.type === 'livraison'
 
   const styles = StyleSheet.create({
     page: {
@@ -105,6 +106,9 @@ export function PdfDocument({ model }: { model: DocumentModel }) {
     discount: { width: '8%', textAlign: 'right' },
     vat: { width: '8%', textAlign: 'right' },
     total: { width: '18%', textAlign: 'right' },
+    deliveryDesc: { width: '70%' },
+    deliveryQty: { width: '15%', textAlign: 'right' },
+    deliveryUnit: { width: '15%', textAlign: 'center' },
     lineTitle: { fontSize: 7.5, color: '#0f172a', fontWeight: 700, marginBottom: 2 },
     totals: { width: 210, alignSelf: 'flex-end', marginTop: 2 },
     totalLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
@@ -190,7 +194,7 @@ export function PdfDocument({ model }: { model: DocumentModel }) {
   return (
     <Document title={`${model.number} - ${model.recipient.name}`} author={model.issuer.tradeName}>
       <Page size="A4" orientation={horizontal ? 'landscape' : 'portrait'} style={styles.page} wrap>
-        {model.options.showWatermark && <Text style={styles.watermark}>BROUILLON</Text>}
+        {model.options.showWatermark && <Text style={styles.watermark}>{model.watermarkText || 'BROUILLON'}</Text>}
         <View style={styles.header}>
           <View style={[styles.company, { flexDirection: logoAlign === 'droite' ? 'row-reverse' : 'row' }]}>
             {companyContent}
@@ -227,35 +231,58 @@ export function PdfDocument({ model }: { model: DocumentModel }) {
 
         {model.type !== 'fiche' && <View style={styles.table}>
           <View style={styles.tableHeader} fixed>
-            <Text style={[styles.tableHeaderText, styles.desc]}>Désignation</Text>
-            <Text style={[styles.tableHeaderText, styles.qty]}>Qté</Text>
-            <Text style={[styles.tableHeaderText, styles.unit]}>Unité</Text>
-            <Text style={[styles.tableHeaderText, styles.price]}>PU HT</Text>
-            <Text style={[styles.tableHeaderText, styles.discount]}>Rem.</Text>
-            <Text style={[styles.tableHeaderText, styles.vat]}>TVA</Text>
-            <Text style={[styles.tableHeaderText, styles.total]}>Total HT</Text>
+            {isPriceFreeDelivery ? (
+              <>
+                <Text style={[styles.tableHeaderText, styles.deliveryDesc]}>Désignation</Text>
+                <Text style={[styles.tableHeaderText, styles.deliveryQty]}>Quantité</Text>
+                <Text style={[styles.tableHeaderText, styles.deliveryUnit]}>Unité</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.tableHeaderText, styles.desc]}>Désignation</Text>
+                <Text style={[styles.tableHeaderText, styles.qty]}>Qté</Text>
+                <Text style={[styles.tableHeaderText, styles.unit]}>Unité</Text>
+                <Text style={[styles.tableHeaderText, styles.price]}>PU HT</Text>
+                <Text style={[styles.tableHeaderText, styles.discount]}>Rem.</Text>
+                <Text style={[styles.tableHeaderText, styles.vat]}>TVA</Text>
+                <Text style={[styles.tableHeaderText, styles.total]}>Total HT</Text>
+              </>
+            )}
           </View>
           {model.lines.map((line, index) => {
             const gross = line.unitPriceHT * line.quantity
             const net = gross * (1 - line.discountPercent / 100)
             return (
               <View key={line.id} style={[styles.row, index % 2 === 1 ? styles.rowAlt : {}]} wrap={false}>
-                <View style={styles.desc}>
-                  <Text style={styles.lineTitle}>{line.designation}</Text>
-                  {line.description && <Text style={styles.cell}>{line.description}</Text>}
-                </View>
-                <Text style={[styles.cell, styles.qty]}>{line.quantity}</Text>
-                <Text style={[styles.cell, styles.unit]}>{line.unit}</Text>
-                <Text style={[styles.cell, styles.price]}>{formatMoney(line.unitPriceHT)}</Text>
-                <Text style={[styles.cell, styles.discount]}>{formatPercent(line.discountPercent)}</Text>
-                <Text style={[styles.cell, styles.vat]}>{formatPercent(line.vatPercent)}</Text>
-                <Text style={[styles.cell, styles.total]}>{formatMoney(net)}</Text>
+                {isPriceFreeDelivery ? (
+                  <>
+                    <View style={styles.deliveryDesc}>
+                      <Text style={styles.lineTitle}>{line.designation}</Text>
+                      {line.description && <Text style={styles.cell}>{line.description}</Text>}
+                    </View>
+                    <Text style={[styles.cell, styles.deliveryQty]}>{line.quantity}</Text>
+                    <Text style={[styles.cell, styles.deliveryUnit]}>{line.unit}</Text>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.desc}>
+                      <Text style={styles.lineTitle}>{line.designation}</Text>
+                      {line.description && <Text style={styles.cell}>{line.description}</Text>}
+                    </View>
+                    <Text style={[styles.cell, styles.qty]}>{line.quantity}</Text>
+                    <Text style={[styles.cell, styles.unit]}>{line.unit}</Text>
+                    <Text style={[styles.cell, styles.price]}>{formatMoney(line.unitPriceHT)}</Text>
+                    <Text style={[styles.cell, styles.discount]}>{formatPercent(line.discountPercent)}</Text>
+                    <Text style={[styles.cell, styles.vat]}>{formatPercent(line.vatPercent)}</Text>
+                    <Text style={[styles.cell, styles.total]}>{formatMoney(net)}</Text>
+                  </>
+                )}
               </View>
             )
           })}
         </View>}
 
-        {model.type !== 'fiche' && <View style={styles.totals} wrap={false}>
+        {model.type !== 'fiche' && !isPriceFreeDelivery && <View style={styles.totals} wrap={false}>
           <View style={styles.totalLine}>
             <Text style={styles.totalLabel}>Sous-total HT</Text>
             <Text style={styles.totalValue}>{formatMoney(model.totals.subtotalHT)}</Text>
@@ -282,7 +309,7 @@ export function PdfDocument({ model }: { model: DocumentModel }) {
           </View>
         </View>}
 
-        {model.type !== 'fiche' && model.options.showAmountInWords && (
+        {model.type !== 'fiche' && !isPriceFreeDelivery && model.options.showAmountInWords && (
           <Text style={styles.words}>
             Arrêté le présent document à la somme de : {numberToFrenchWords(model.totals.totalTTC)}.
           </Text>

@@ -15,7 +15,6 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form'
-import { z } from 'zod'
 import {
   Badge,
   Button,
@@ -30,63 +29,7 @@ import { getNextNumber } from './getNextNumber'
 import { exportDocument, printDocument, renderDocument, type ExportFormat } from './exportDocument'
 import { calculateTotals, formatMoney } from '@/lib/format'
 import type { DocumentModel } from './types'
-
-const editorSchema = z.object({
-  type: z.enum(['devis', 'commande', 'livraison', 'facture', 'recu', 'intervention', 'client', 'fiche']),
-  numberingType: z.enum(['fiche_client', 'fiche_ascenseur', 'fiche_technicien']).optional(),
-  number: z.string().min(1, 'Le numéro du document est obligatoire.'),
-  date: z.string().min(1, 'La date est obligatoire.'),
-  title: z.string().min(1, 'Le titre est obligatoire.'),
-  issuer: z.custom<DocumentModel['issuer']>(),
-  recipient: z.object({
-    name: z.string().min(1, 'Le nom du destinataire est obligatoire.'),
-    address: z.string(),
-    city: z.string(),
-    ice: z.string(),
-    phone: z.string(),
-    email: z.string(),
-  }),
-  references: z.string(),
-  lines: z.array(
-    z.object({
-      id: z.string(),
-      designation: z.string().min(1, 'La désignation est obligatoire.'),
-      description: z.string(),
-      quantity: z.number().min(0),
-      unit: z.string(),
-      unitPriceHT: z.number().min(0),
-      discountPercent: z.number().min(0).max(100),
-      vatPercent: z.number().min(0).max(100),
-    }),
-  ),
-  totals: z.custom<DocumentModel['totals']>(),
-  notes: z.string(),
-  conditions: z.string(),
-  paymentMethod: z.string(),
-  deliveryTime: z.string(),
-  sections: z.array(z.object({
-    id: z.string(),
-    title: z.string(),
-    content: z.string(),
-    kind: z.enum(['text', 'fields', 'table', 'checklist']).optional(),
-    fields: z.array(z.object({ id: z.string(), label: z.string(), value: z.string() })).optional(),
-    table: z.object({ columns: z.array(z.string()), rows: z.array(z.array(z.string())) }).optional(),
-    checks: z.array(z.object({ id: z.string(), label: z.string(), checked: z.boolean() })).optional(),
-    imageData: z.string().optional(),
-  })),
-  options: z.object({
-    showLogo: z.boolean(),
-    showStamp: z.boolean(),
-    showSignature: z.boolean(),
-    showBankDetails: z.boolean(),
-    showAmountInWords: z.boolean(),
-    showWatermark: z.boolean(),
-    showLegalMentions: z.boolean(),
-    showSlogan: z.boolean(),
-    accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-    orientation: z.enum(['portrait', 'landscape']),
-  }),
-})
+import { documentModelSchema } from './schema'
 
 type EditorTab = 'edit' | 'preview'
 
@@ -145,7 +88,7 @@ export function DocumentEditor({ initialModel, onLoadStressTest }: DocumentEdito
     reset,
     formState: { errors },
   } = useForm<DocumentModel>({
-    resolver: zodResolver(editorSchema),
+    resolver: zodResolver(documentModelSchema),
     defaultValues: initialModel,
     mode: 'onChange',
   })
@@ -155,6 +98,7 @@ export function DocumentEditor({ initialModel, onLoadStressTest }: DocumentEdito
   const model = getValues()
   const totals = useMemo(() => calculateTotals(model.lines), [model.lines])
   const readyModel = useMemo(() => ({ ...model, totals }), [model, totals])
+  const isPriceFreeDelivery = model.type === 'livraison'
 
   useEffect(() => {
     reset(initialModel)
@@ -326,6 +270,8 @@ export function DocumentEditor({ initialModel, onLoadStressTest }: DocumentEdito
                     <option value="fiche_client">Fiche client</option>
                     <option value="fiche_ascenseur">Fiche appareil</option>
                     <option value="fiche_technicien">Fiche technicien</option>
+                    <option value="bon_intervention">Bon d’intervention</option>
+                    <option value="rapport_intervention">Rapport d’intervention</option>
                   </select>
                 </div>}
                 <div>
@@ -388,18 +334,20 @@ export function DocumentEditor({ initialModel, onLoadStressTest }: DocumentEdito
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <div><Label htmlFor={`line-${index}-quantity`}>Quantité</Label><Input id={`line-${index}-quantity`} type="number" step="0.01" {...register(`lines.${index}.quantity`, { valueAsNumber: true })} /></div>
                       <div><Label htmlFor={`line-${index}-unit`}>Unité</Label><Input id={`line-${index}-unit`} {...register(`lines.${index}.unit`)} /></div>
-                      <div><Label htmlFor={`line-${index}-price`}>Prix HT</Label><Input id={`line-${index}-price`} type="number" step="0.01" {...register(`lines.${index}.unitPriceHT`, { valueAsNumber: true })} /></div>
-                      <div><Label htmlFor={`line-${index}-discount`}>Remise %</Label><Input id={`line-${index}-discount`} type="number" step="0.01" {...register(`lines.${index}.discountPercent`, { valueAsNumber: true })} /></div>
-                      <div><Label htmlFor={`line-${index}-vat`}>TVA %</Label><Input id={`line-${index}-vat`} type="number" step="0.01" {...register(`lines.${index}.vatPercent`, { valueAsNumber: true })} /></div>
+                      {!isPriceFreeDelivery && <>
+                        <div><Label htmlFor={`line-${index}-price`}>Prix HT</Label><Input id={`line-${index}-price`} type="number" step="0.01" {...register(`lines.${index}.unitPriceHT`, { valueAsNumber: true })} /></div>
+                        <div><Label htmlFor={`line-${index}-discount`}>Remise %</Label><Input id={`line-${index}-discount`} type="number" step="0.01" {...register(`lines.${index}.discountPercent`, { valueAsNumber: true })} /></div>
+                        <div><Label htmlFor={`line-${index}-vat`}>TVA %</Label><Input id={`line-${index}-vat`} type="number" step="0.01" {...register(`lines.${index}.vatPercent`, { valueAsNumber: true })} /></div>
+                      </>}
                     </div>
                   </Card>
                 ))}
               </div>
-              <div className="rounded-xl bg-navy-50 p-3 text-right text-xs text-slate-600">
+              {!isPriceFreeDelivery && <div className="rounded-xl bg-navy-50 p-3 text-right text-xs text-slate-600">
                 <p>Total HT : <strong>{formatMoney(totals.totalHT)}</strong></p>
                 <p>TVA : <strong>{formatMoney(totals.totalVAT)}</strong></p>
                 <p className="mt-1 text-sm text-navy-900">Total TTC : <strong>{formatMoney(totals.totalTTC)}</strong></p>
-              </div>
+              </div>}
             </fieldset>}
 
             {model.type !== 'fiche' && <fieldset className="grid gap-3 border-t border-slate-100 pt-5 sm:grid-cols-2">
@@ -497,8 +445,10 @@ export function DocumentEditor({ initialModel, onLoadStressTest }: DocumentEdito
                 <OptionToggle label="Cachet" checked={model.options.showStamp} onChange={(value) => updateOption('showStamp', value)} />
                 <OptionToggle label="Signature" checked={model.options.showSignature} onChange={(value) => updateOption('showSignature', value)} />
                 <OptionToggle label="Coordonnées bancaires" checked={model.options.showBankDetails} onChange={(value) => updateOption('showBankDetails', value)} />
-                <OptionToggle label="Montant en lettres" checked={model.options.showAmountInWords} onChange={(value) => updateOption('showAmountInWords', value)} />
-                <OptionToggle label="Filigrane BROUILLON" checked={model.options.showWatermark} onChange={(value) => updateOption('showWatermark', value)} />
+                {!isPriceFreeDelivery && <OptionToggle label="Montant en lettres" checked={model.options.showAmountInWords} onChange={(value) => updateOption('showAmountInWords', value)} />}
+                {model.watermarkText
+                  ? <p className="rounded-lg bg-danger-50 px-3 py-2 text-sm font-medium text-danger-700">Filigrane obligatoire : {model.watermarkText}</p>
+                  : <OptionToggle label="Filigrane BROUILLON" checked={model.options.showWatermark} onChange={(value) => updateOption('showWatermark', value)} />}
                 <OptionToggle label="Mentions légales" checked={model.options.showLegalMentions} onChange={(value) => updateOption('showLegalMentions', value)} />
                 <OptionToggle label="Slogan" checked={model.options.showSlogan} onChange={(value) => updateOption('showSlogan', value)} />
               </div>

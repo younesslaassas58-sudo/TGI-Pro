@@ -6,12 +6,18 @@ export type DocumentType =
   | 'livraison'
   | 'facture'
   | 'recu'
+  | 'relance'
   | 'intervention'
   | 'client'
   | 'fiche'
 
 export type DocumentOrientation = 'portrait' | 'landscape'
-export type FichaNumberingType = 'fiche_client' | 'fiche_ascenseur' | 'fiche_technicien'
+export type FichaNumberingType =
+  | 'fiche_client'
+  | 'fiche_ascenseur'
+  | 'fiche_technicien'
+  | 'bon_intervention'
+  | 'rapport_intervention'
 
 export interface FichaField {
   id: string
@@ -81,6 +87,7 @@ export interface DocumentTotals {
 export interface DocumentModel {
   type: DocumentType
   numberingType?: FichaNumberingType
+  watermarkText?: string
   number: string
   date: string
   title: string

@@ -8,6 +8,8 @@ import { usePermission } from '@/features/auth/usePermission'
 import { specialtyLabels } from './types'
 import { technicianHabilitationStatus } from './technicianUtils'
 import { useTechnicienPrive, useTechniciens } from './useTechniciens'
+import { useInterventions } from '@/features/interventions/useInterventions'
+import { InterventionLinks } from '@/features/interventions/InterventionLinks'
 
 type Tab = 'fiche' | 'interventions' | 'planning'
 
@@ -21,6 +23,7 @@ export function TechnicienDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data = [], isLoading, error } = useTechniciens()
+  const interventionsQuery = useInterventions()
   const role = useAuth((state) => state.profile?.role)
   const technician = data.find((item) => item.id === id)
   const director = usePermission('parametres', 'modifier')
@@ -41,6 +44,7 @@ export function TechnicienDetailPage() {
     ['Disponibilité', technician.disponibilite],
     ['Véhicule', technician.vehicule],
   ]
+  const technicianInterventions = (interventionsQuery.data ?? []).filter((item) => item.techniciensIds.includes(technician.id) && !item.archive)
 
   return <>
     <PageHeader title={`${technician.prenom} ${technician.nom}`} description={`Matricule ${technician.matricule}`} action={
@@ -57,7 +61,7 @@ export function TechnicienDetailPage() {
     <div className="mb-4 flex gap-2 border-b border-slate-200" role="tablist" aria-label="Sections de la fiche technicien">
       {([['fiche', 'Informations'], ['interventions', 'Interventions'], ['planning', 'Planning']] as const).map(([key, label]) => <button key={key} role="tab" aria-selected={tab === key} className={`border-b-2 px-3 py-2 text-sm font-medium ${tab === key ? 'border-gold-500 text-navy-900' : 'border-transparent text-slate-500'}`} onClick={() => setTab(key)}>{label}</button>)}
     </div>
-    {tab !== 'fiche' ? <Card className="p-12 text-center"><p className="font-medium text-slate-700">Disponible prochainement</p></Card> : <>
+    {tab === 'interventions' ? <InterventionLinks interventions={technicianInterventions} isLoading={interventionsQuery.isLoading} error={Boolean(interventionsQuery.error)} emptyMessage="Aucune intervention affectée à ce technicien." /> : tab === 'planning' ? <Card className="p-12 text-center"><p className="font-medium text-slate-700">Disponible prochainement</p></Card> : <>
       <div className="grid gap-5 lg:grid-cols-2">
         <Card className="p-5">
           <h2 className="font-heading font-semibold text-navy-900">Informations professionnelles</h2>

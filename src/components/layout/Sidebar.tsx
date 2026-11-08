@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Boxes,
+  BookOpen,
   Building2,
   ChevronLeft,
   ChevronRight,
@@ -10,9 +11,12 @@ import {
   HardHat,
   PackageCheck,
   PackageOpen,
+  Package,
   Settings,
   Users,
+  Truck,
   UserCog,
+  Warehouse,
   Wrench,
   X,
 } from 'lucide-react'
@@ -45,11 +49,16 @@ const groups: NavigationGroup[] = [
     label: 'Commercial',
     items: [
       { label: 'Clients', to: '/clients', icon: Users, module: 'clients' },
+      { label: 'Catalogue', to: '/catalogue', icon: BookOpen, module: 'catalogue' },
+      { label: 'Fournisseurs', to: '/fournisseurs', icon: Truck, module: 'fournisseurs' },
       { label: 'Parc d’ascenseurs', to: '/parc', icon: Building2, module: 'parc' },
       { label: 'Devis', to: '/devis', icon: FileText, module: 'devis' },
       { label: 'Bons de commande', to: '/commandes', icon: PackageOpen, module: 'commandes' },
       { label: 'Bons de livraison', to: '/livraisons', icon: PackageCheck, module: 'livraisons' },
-      { label: 'Recouvrement', to: '/recouvrement', icon: ClipboardList, module: 'recouvrement' },
+      { label: 'Recouvrement · Tableau de bord', to: '/recouvrement', icon: ClipboardList, module: 'recouvrement' },
+      { label: 'Recouvrement · Contrats', to: '/recouvrement/contrats', icon: ClipboardList, module: 'recouvrement' },
+      { label: 'Recouvrement · Échéances', to: '/recouvrement/echeances', icon: ClipboardList, module: 'recouvrement' },
+      { label: 'Recouvrement · Paiements', to: '/recouvrement/paiements', icon: ClipboardList, module: 'recouvrement' },
     ],
   },
   {
@@ -57,7 +66,6 @@ const groups: NavigationGroup[] = [
     items: [
       { label: 'Interventions', to: '/interventions', icon: Wrench, module: 'interventions' },
       { label: 'Techniciens', to: '/techniciens', icon: HardHat, module: 'techniciens' },
-      { label: 'Stock', to: '/stock', icon: Boxes, module: 'stock' },
     ],
   },
   {
@@ -199,14 +207,19 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                 {group.label}
               </h2>
               <div className="space-y-1">
-                {group.items.map((item) => (
-                  <NavigationLink
-                    key={item.to}
-                    item={item}
-                    collapsed={collapsed}
-                    onNavigate={onClose}
-                  />
-                ))}
+                {group.items.flatMap((item) => {
+                  if (item.module !== 'stock') return [<NavigationLink key={item.to} item={item} collapsed={collapsed} onNavigate={onClose} />]
+                  if (profile?.role === 'technicien') {
+                    return [<NavigationLink key="/stock" item={{ ...item, label: 'Mon stock' }} collapsed={collapsed} onNavigate={onClose} />]
+                  }
+                  return [
+                    <NavigationLink key="/stock" item={{ ...item, label: 'Stock · Tableau de bord' }} collapsed={collapsed} onNavigate={onClose} />,
+                    <NavigationLink key="/stock/articles" item={{ ...item, label: 'Stock · Articles', to: '/stock/articles', icon: Boxes }} collapsed={collapsed} onNavigate={onClose} />,
+                    <NavigationLink key="/stock/mouvements" item={{ ...item, label: 'Stock · Mouvements', to: '/stock/mouvements', icon: Package }} collapsed={collapsed} onNavigate={onClose} />,
+                    <NavigationLink key="/stock/depots" item={{ ...item, label: 'Stock · Dépôts', to: '/stock/depots', icon: Warehouse }} collapsed={collapsed} onNavigate={onClose} />,
+                    ...(profile?.role === 'directeur' ? [<NavigationLink key="/stock/inventaires" item={{ ...item, label: 'Stock · Inventaires', to: '/stock/inventaires', icon: PackageCheck }} collapsed={collapsed} onNavigate={onClose} />] : []),
+                  ]
+                })}
               </div>
             </section>
           ))}

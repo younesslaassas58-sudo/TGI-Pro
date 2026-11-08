@@ -49,6 +49,46 @@ export const UtilisateursPage = lazy(async () =>
   import('@/features/utilisateurs/UtilisateursPage').then((module) => ({ default: module.UtilisateursPage })),
 )
 
+export const CataloguePage = lazy(async () =>
+  import('@/features/catalogue/CataloguePage').then((module) => ({ default: module.CataloguePage })),
+)
+
+export const FournisseursPage = lazy(async () =>
+  import('@/features/fournisseurs/FournisseursPage').then((module) => ({ default: module.FournisseursPage })),
+)
+
+export const DevisPage = lazy(async () =>
+  import('@/features/devis/DevisPage').then((module) => ({ default: module.DevisPage })),
+)
+
+export const DevisPublicPage = lazy(async () =>
+  import('@/features/devis/DevisPublicPage').then((module) => ({ default: module.DevisPublicPage })),
+)
+
+export const CommandesPage = lazy(async () =>
+  import('@/features/commandes/CommandesPage').then((module) => ({ default: module.CommandesPage })),
+)
+
+export const LivraisonsPage = lazy(async () =>
+  import('@/features/livraisons/LivraisonsPage').then((module) => ({ default: module.LivraisonsPage })),
+)
+
+export const RecouvrementPage = lazy(async () =>
+  import('@/features/recouvrement/RecouvrementPage').then((module) => ({ default: module.RecouvrementPage })),
+)
+
+export const StockPage = lazy(async () =>
+  import('@/features/stock/StockPage').then((module) => ({ default: module.StockPage })),
+)
+
+export const InterventionsPage = lazy(async () =>
+  import('@/features/interventions/InterventionsPage').then((module) => ({ default: module.InterventionsPage })),
+)
+
+export const InterventionDetailPage = lazy(async () =>
+  import('@/features/interventions/InterventionDetailPage').then((module) => ({ default: module.InterventionDetailPage })),
+)
+
 export function LazyPage({ children }: { children: ReactNode }) {
   return <Suspense fallback={<LoadingScreen />}>{children}</Suspense>
 }

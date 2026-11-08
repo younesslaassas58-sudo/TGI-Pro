@@ -30,6 +30,7 @@ function mergeSettings(value: unknown): CompanySettings {
   return {
     ...defaultCompanySettings,
     ...saved,
+    autoriserStockNegatif: saved.autoriserStockNegatif === true,
     phones: Array.isArray(saved.phones) ? saved.phones : defaultCompanySettings.phones,
     bankAccounts: Array.isArray(saved.bankAccounts)
       ? saved.bankAccounts
@@ -50,10 +51,25 @@ function mergeSettings(value: unknown): CompanySettings {
       intervention: mergeNumbering(saved.numbering?.intervention, 'intervention'),
       client: mergeNumbering(saved.numbering?.client, 'client'),
       ascenseur: mergeNumbering(saved.numbering?.ascenseur, 'ascenseur'),
+      article: mergeNumbering(saved.numbering?.article, 'article'),
+      fournisseur: mergeNumbering(saved.numbering?.fournisseur, 'fournisseur'),
+      bon_commande_client: mergeNumbering(saved.numbering?.bon_commande_client, 'bon_commande_client'),
+      bon_commande_fournisseur: mergeNumbering(saved.numbering?.bon_commande_fournisseur, 'bon_commande_fournisseur'),
+      bon_livraison: mergeNumbering(saved.numbering?.bon_livraison, 'bon_livraison'),
       fiche_client: mergeNumbering(saved.numbering?.fiche_client, 'fiche_client'),
       fiche_ascenseur: mergeNumbering(saved.numbering?.fiche_ascenseur, 'fiche_ascenseur'),
       technicien: mergeNumbering(saved.numbering?.technicien, 'technicien'),
       fiche_technicien: mergeNumbering(saved.numbering?.fiche_technicien, 'fiche_technicien'),
+      contrat: mergeNumbering(saved.numbering?.contrat, 'contrat'),
+      releve: mergeNumbering(saved.numbering?.releve, 'releve'),
+      relance: mergeNumbering(saved.numbering?.relance, 'relance'),
+      mouvement_stock: mergeNumbering(saved.numbering?.mouvement_stock, 'mouvement_stock'),
+      inventaire: mergeNumbering(saved.numbering?.inventaire, 'inventaire'),
+      bon_entree: mergeNumbering(saved.numbering?.bon_entree, 'bon_entree'),
+      bon_sortie: mergeNumbering(saved.numbering?.bon_sortie, 'bon_sortie'),
+      bon_transfert: mergeNumbering(saved.numbering?.bon_transfert, 'bon_transfert'),
+      bon_intervention: mergeNumbering(saved.numbering?.bon_intervention, 'bon_intervention'),
+      rapport_intervention: mergeNumbering(saved.numbering?.rapport_intervention, 'rapport_intervention'),
     },
   }
 }

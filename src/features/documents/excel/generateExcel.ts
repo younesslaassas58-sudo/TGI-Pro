@@ -7,6 +7,9 @@ function safeColor(value: string): string {
 }
 
 export async function generateExcel(model: DocumentModel): Promise<Blob> {
+  const isPriceFreeDelivery = model.type === 'livraison'
+  const columnCount = isPriceFreeDelivery ? 4 : 8
+  const lastColumn = isPriceFreeDelivery ? 'D' : 'H'
   const workbook = new ExcelJS.Workbook()
   workbook.creator = model.issuer.tradeName
   workbook.subject = model.title
@@ -21,7 +24,7 @@ export async function generateExcel(model: DocumentModel): Promise<Blob> {
     sheet.getCell('A1').value = model.issuer.tradeName
     sheet.getCell('A1').font = { name: 'Arial', size: 18, bold: true, color: { argb: safeColor(model.issuer.documentAppearance.primaryColor) } }
     sheet.mergeCells('A2:H2')
-    sheet.getCell('A2').value = `${model.title} · ${model.number} · ${model.date}`
+    sheet.getCell('A2').value = `${model.options.showWatermark ? `${model.watermarkText || 'BROUILLON'} · ` : ''}${model.title} · ${model.number} · ${model.date}`
     sheet.getCell('A2').font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
     sheet.getCell('A2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: safeColor(model.issuer.documentAppearance.primaryColor) } }
     sheet.mergeCells('A3:H3')
@@ -118,33 +121,42 @@ export async function generateExcel(model: DocumentModel): Promise<Blob> {
     views: [{ state: 'frozen', ySplit: 7 }],
   })
 
-  sheet.columns = [
-    { key: 'designation', width: 36 },
-    { key: 'description', width: 48 },
-    { key: 'quantity', width: 10 },
-    { key: 'unit', width: 12 },
-    { key: 'price', width: 16 },
-    { key: 'discount', width: 12 },
-    { key: 'vat', width: 10 },
-    { key: 'lineTotal', width: 18 },
-  ]
+  sheet.columns = isPriceFreeDelivery
+    ? [
+        { key: 'designation', width: 36 },
+        { key: 'description', width: 48 },
+        { key: 'quantity', width: 12 },
+        { key: 'unit', width: 14 },
+      ]
+    : [
+        { key: 'designation', width: 36 },
+        { key: 'description', width: 48 },
+        { key: 'quantity', width: 10 },
+        { key: 'unit', width: 12 },
+        { key: 'price', width: 16 },
+        { key: 'discount', width: 12 },
+        { key: 'vat', width: 10 },
+        { key: 'lineTotal', width: 18 },
+      ]
 
-  sheet.mergeCells('A1:H1')
+  sheet.mergeCells(`A1:${lastColumn}1`)
   sheet.getCell('A1').value = model.issuer.tradeName
   sheet.getCell('A1').font = { name: 'Arial', size: 18, bold: true, color: { argb: safeColor(model.issuer.documentAppearance.primaryColor) } }
   sheet.getCell('A2').value = model.issuer.legalName
-  sheet.mergeCells('A2:H2')
+  sheet.mergeCells(`A2:${lastColumn}2`)
   sheet.getCell('A3').value = [model.issuer.address, model.issuer.city, model.issuer.phones.filter(Boolean).join(' · '), model.issuer.email].filter(Boolean).join(' · ')
-  sheet.mergeCells('A3:H3')
-  sheet.getCell('A4').value = `${model.title} · ${model.number} · ${model.date}`
-  sheet.mergeCells('A4:H4')
+  sheet.mergeCells(`A3:${lastColumn}3`)
+  sheet.getCell('A4').value = `${model.options.showWatermark ? `${model.watermarkText || 'BROUILLON'} · ` : ''}${model.title} · ${model.number} · ${model.date}`
+  sheet.mergeCells(`A4:${lastColumn}4`)
   sheet.getCell('A4').font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
   sheet.getCell('A4').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: safeColor(model.issuer.documentAppearance.primaryColor) } }
   sheet.getCell('A5').value = `Destinataire : ${model.recipient.name}`
-  sheet.mergeCells('A5:H5')
+  sheet.mergeCells(`A5:${lastColumn}5`)
   sheet.getCell('A6').value = [model.recipient.address, model.recipient.city, model.recipient.ice && `ICE ${model.recipient.ice}`, model.recipient.phone, model.recipient.email].filter(Boolean).join(' · ')
-  sheet.mergeCells('A6:H6')
-  sheet.getRow(7).values = ['Désignation', 'Description', 'Quantité', 'Unité', 'Prix unitaire HT', 'Remise %', 'TVA %', 'Total ligne HT']
+  sheet.mergeCells(`A6:${lastColumn}6`)
+  sheet.getRow(7).values = isPriceFreeDelivery
+    ? ['Désignation', 'Description', 'Quantité', 'Unité']
+    : ['Désignation', 'Description', 'Quantité', 'Unité', 'Prix unitaire HT', 'Remise %', 'TVA %', 'Total ligne HT']
 
   const header = sheet.getRow(7)
   header.height = 26
@@ -153,6 +165,31 @@ export async function generateExcel(model: DocumentModel): Promise<Blob> {
   header.alignment = { vertical: 'middle', wrapText: true }
 
   const firstLineRow = 8
+  if (isPriceFreeDelivery) {
+    model.lines.forEach((line, index) => {
+      const row = sheet.getRow(firstLineRow + index)
+      row.values = [line.designation, line.description, line.quantity, line.unit]
+      row.height = 38
+      row.alignment = { vertical: 'top', wrapText: true }
+      if (index % 2 === 1) {
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } }
+        })
+      }
+    })
+    const lastLineRow = Math.max(firstLineRow, firstLineRow + model.lines.length - 1)
+    sheet.autoFilter = { from: { row: 7, column: 1 }, to: { row: lastLineRow, column: columnCount } }
+    sheet.pageSetup.printArea = `A1:${lastColumn}${lastLineRow}`
+    sheet.headerFooter.oddFooter = '&L&"Arial,Regular"&8TGI Ascenseurs&CPage &P / &N'
+    sheet.eachRow((row) => {
+      row.eachCell((cell) => {
+        cell.font = { name: 'Arial', ...cell.font }
+      })
+    })
+    const buffer = await workbook.xlsx.writeBuffer()
+    return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  }
+
   model.lines.forEach((line, index) => {
     const rowNumber = firstLineRow + index
     const row = sheet.getRow(rowNumber)

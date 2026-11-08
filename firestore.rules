@@ -35,6 +35,206 @@ service cloud.firestore {
       return canCreateDocuments();
     }
 
+    function canUseRecouvrement() {
+      return isActive() && role() in ['directeur', 'commercial'];
+    }
+
+    function canManageStock() {
+      return isActive() && role() in ['directeur', 'commercial'];
+    }
+
+    function isCommercial() {
+      return isActive() && role() == 'commercial';
+    }
+
+    function canReadIntervention(data) {
+      return isActive() && (
+        role() in ['directeur', 'commercial']
+        || (role() == 'technicien' && data.techniciensUids.hasAny([request.auth.uid]))
+      );
+    }
+
+    function validInterventionPhotos() {
+      return !('photosMediaIds' in request.resource.data)
+        || (request.resource.data.photosMediaIds is list
+          && request.resource.data.photosMediaIds.size() <= 6);
+    }
+
+    function validTechnicianInterventionUpdate() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let assigned = resource.data.techniciensUids.hasAny([request.auth.uid]);
+      let unchanged = request.resource.data.id == resource.data.id
+        && request.resource.data.numero == resource.data.numero
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      let reportFields = [
+        'diagnostic', 'travauxRealises', 'piecesUtilisees', 'checklist',
+        'observations', 'recommandations', 'etatApresIntervention',
+        'nomSignataire', 'signatureMediaId', 'photosMediaIds', 'updatedAt', 'updatedBy'
+      ];
+      let statusFields = ['statut', 'dateDebutReelle', 'historiqueStatuts', 'updatedAt', 'updatedBy'];
+      let allowedTransition = (
+        resource.data.statut == 'planifiee'
+        && request.resource.data.statut == 'en_cours'
+      ) || (
+        resource.data.statut == 'en_cours'
+        && request.resource.data.statut == 'en_attente_pieces'
+      ) || (
+        resource.data.statut == 'en_attente_pieces'
+        && request.resource.data.statut == 'en_cours'
+      );
+      return isActive()
+        && role() == 'technicien'
+        && assigned
+        && unchanged
+        && request.resource.data.updatedBy == request.auth.uid
+        && validInterventionPhotos()
+        && (
+          changed.hasOnly(reportFields)
+          || (allowedTransition && changed.hasOnly(statusFields))
+        );
+    }
+
+    function validManagerInterventionUpdate() {
+        let changed = request.resource.data.diff(resource.data).affectedKeys();
+        let unchanged = request.resource.data.id == resource.data.id
+          && request.resource.data.numero == resource.data.numero
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedBy == request.auth.uid;
+        let editableFields = [
+          'type', 'priorite', 'clientId', 'clientNomSnapshot', 'ascenseurId',
+          'ascenseurCodeSnapshot', 'adresseSiteSnapshot', 'contratId',
+          'techniciensIds', 'techniciensUids', 'technicienPrincipalId',
+          'canalDemande', 'demandeur', 'personneBloquee', 'descriptionDemande',
+          'datePrevue', 'heurePrevue', 'tempsDeplacementMinutes', 'diagnostic',
+          'travauxRealises', 'piecesUtilisees', 'checklist', 'observations',
+          'recommandations', 'etatApresIntervention', 'facturable',
+          'couvertParContrat', 'montantEstime', 'devisId', 'nomSignataire',
+          'signatureMediaId', 'photosMediaIds', 'updatedAt', 'updatedBy'
+        ];
+        let normalEdit = request.resource.data.statut == resource.data.statut
+          && changed.hasOnly(editableFields);
+        let targetStatus = request.resource.data.statut;
+        let fromStatus = resource.data.statut;
+        let validTransition = (
+          fromStatus == 'nouvelle' && targetStatus == 'planifiee'
+        ) || (
+          fromStatus == 'planifiee' && targetStatus == 'en_cours'
+        ) || (
+          fromStatus == 'en_cours' && targetStatus == 'en_attente_pieces'
+        ) || (
+          fromStatus == 'en_attente_pieces' && targetStatus == 'en_cours'
+        ) || (
+          fromStatus in ['nouvelle', 'planifiee', 'en_cours', 'en_attente_pieces']
+          && targetStatus == 'annulee'
+          && request.resource.data.annulation is string
+          && request.resource.data.annulation.size() > 0
+        ) || (
+          fromStatus == 'terminee'
+          && targetStatus == 'cloturee'
+          && resource.data.mouvementsStockGeneres == true
+        ) || (
+          fromStatus == 'terminee'
+          && targetStatus == 'annulee'
+          && isDirector()
+          && request.resource.data.annulation is string
+          && request.resource.data.annulation.size() > 0
+        );
+        return canCreateDocuments()
+          && unchanged
+          && validInterventionPhotos()
+          && (
+            normalEdit
+            || (
+              validTransition
+              && changed.hasOnly(['statut', 'dateDebutReelle', 'annulation', 'historiqueStatuts', 'updatedAt', 'updatedBy'])
+            )
+          );
+    }
+
+    function validDepot() {
+      return request.resource.data.type == 'vehicule'
+        ? request.resource.data.technicienUid is string
+        : !request.resource.data.keys().hasAny(['technicienUid']);
+    }
+
+    function quoteFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id
+        && request.resource.data.number == resource.data.number
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
+    function quoteUpdateAllowed() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return (
+        resource.data.status == 'draft'
+        && request.resource.data.status == 'draft'
+        && changed.hasOnly([
+          'client', 'lines', 'totals', 'issueDate', 'validUntil', 'notes',
+          'conditions', 'updatedAt', 'updatedBy', 'history'
+        ])
+      ) || (
+        resource.data.status == 'draft'
+        && request.resource.data.status == 'sent'
+        && request.resource.data.sentRevision == resource.data.revision
+        && changed.hasOnly([
+          'status', 'revisions', 'sentAt', 'sentRevision', 'updatedAt',
+          'updatedBy', 'history'
+        ])
+      ) || (
+        resource.data.status in ['sent', 'accepted']
+        && request.resource.data.status == 'draft'
+        && request.resource.data.revision == resource.data.revision + 1
+        && changed.hasOnly([
+          'status', 'revision', 'history', 'updatedAt', 'updatedBy',
+          'shareToken', 'sharedAt'
+        ])
+      ) || (
+        resource.data.status == 'sent'
+        && request.resource.data.status in ['accepted', 'rejected', 'expired']
+        && changed.hasOnly([
+          'status', 'updatedAt', 'updatedBy', 'history', 'shareToken', 'sharedAt'
+        ])
+      ) || (
+        resource.data.status == 'accepted'
+        && request.resource.data.status == 'converted'
+        && changed.hasOnly([
+          'status', 'convertedOrderId', 'updatedAt', 'updatedBy', 'history'
+        ])
+      ) || (
+        resource.data.status in ['sent', 'accepted']
+        && request.resource.data.status == resource.data.status
+        && changed.hasOnly(['shareToken', 'sharedAt', 'updatedAt', 'updatedBy', 'history'])
+      );
+    }
+
+    function validDeliveryMediaItem(item) {
+      return item is map
+        && item.keys().hasOnly(['id', 'name', 'contentType', 'dataUrl'])
+        && item.id is string
+        && item.name is string
+        && item.contentType == 'image/jpeg'
+        && item.dataUrl is string
+        && item.dataUrl.size() <= 140000;
+    }
+
+    function validDeliveryMediaList(media) {
+      return media is list
+        && media.size() <= 5
+        && (media.size() < 1 || validDeliveryMediaItem(media[0]))
+        && (media.size() < 2 || validDeliveryMediaItem(media[1]))
+        && (media.size() < 3 || validDeliveryMediaItem(media[2]))
+        && (media.size() < 4 || validDeliveryMediaItem(media[3]))
+        && (media.size() < 5 || validDeliveryMediaItem(media[4]));
+    }
+
+    function validDeliverySignature(data) {
+      return !('signatureDataUrl' in data)
+        || (data.signatureDataUrl is string && data.signatureDataUrl.size() <= 150000);
+    }
+
     match /users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isDirector());
       allow create: if false;
@@ -112,6 +312,267 @@ service cloud.firestore {
       allow delete: if isDirector();
     }
 
+    match /articles/{articleId} {
+      allow read: if isActive() && role() in ['directeur', 'commercial'];
+      allow create: if canManageClientsAndFleet()
+        && request.resource.data.id == articleId
+        && request.resource.data.code is string
+        && request.resource.data.code.size() > 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if canManageClientsAndFleet()
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isDirector();
+    }
+
+    match /fournisseurs/{fournisseurId} {
+      allow read: if isActive() && role() in ['directeur', 'commercial'];
+      allow create: if canManageClientsAndFleet()
+        && request.resource.data.id == fournisseurId
+        && request.resource.data.code is string
+        && request.resource.data.code.size() > 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if canManageClientsAndFleet()
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isDirector();
+    }
+
+    match /devis/{devisId} {
+      allow read: if isActive() && role() in ['directeur', 'commercial'];
+      allow create: if canCreateDocuments()
+        && request.resource.data.id == devisId
+        && request.resource.data.number is string
+        && request.resource.data.number.size() > 0
+        && request.resource.data.status == 'draft'
+        && request.resource.data.revision == 1
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if canCreateDocuments()
+        && quoteFieldsUnchanged()
+        && request.resource.data.updatedBy == request.auth.uid
+        && (
+          request.resource.data.status != 'converted'
+          || (
+            request.resource.data.convertedOrderId is string
+            && existsAfter(/databases/$(database)/documents/bonsCommande/$(request.resource.data.convertedOrderId))
+            && getAfter(/databases/$(database)/documents/bonsCommande/$(request.resource.data.convertedOrderId)).data.sourceQuoteId == devisId
+          )
+        )
+        && quoteUpdateAllowed();
+      allow delete: if isDirector()
+        && !resource.data.keys().hasAny(['shareToken']);
+    }
+
+    match /devis_partages/{shareId} {
+      allow get: if resource.data.shareToken == shareId
+        && resource.data.status in ['sent', 'accepted'];
+      allow list: if false;
+      allow create: if canCreateDocuments()
+        && request.resource.data.shareToken == shareId
+        && request.resource.data.keys().hasOnly([
+          'quoteId', 'shareToken', 'number', 'status', 'revision', 'client',
+          'lines', 'totals', 'issueDate', 'validUntil', 'notes', 'conditions'
+        ])
+        && request.resource.data.quoteId is string
+        && existsAfter(/databases/$(database)/documents/devis/$(request.resource.data.quoteId))
+        && getAfter(/databases/$(database)/documents/devis/$(request.resource.data.quoteId)).data.shareToken == shareId
+        && getAfter(/databases/$(database)/documents/devis/$(request.resource.data.quoteId)).data.status in ['sent', 'accepted'];
+      allow update: if false;
+      allow delete: if canCreateDocuments()
+        && resource.data.shareToken == shareId
+        && existsAfter(/databases/$(database)/documents/devis/$(resource.data.quoteId))
+        && (
+          getAfter(/databases/$(database)/documents/devis/$(resource.data.quoteId)).data.get('shareToken', '') != shareId
+          || !(getAfter(/databases/$(database)/documents/devis/$(resource.data.quoteId)).data.status in ['sent', 'accepted'])
+        );
+    }
+
+    match /bonsCommande/{commandeId} {
+      allow read: if isActive() && role() in ['directeur', 'commercial'];
+      allow create: if canCreateDocuments()
+        && request.resource.data.id == commandeId
+        && request.resource.data.number is string
+        && request.resource.data.number.size() > 0
+        && request.resource.data.kind in ['client', 'fournisseur']
+        && request.resource.data.status in ['draft', 'ordered']
+        && (
+          !('sourceQuoteId' in request.resource.data)
+          || (
+            existsAfter(/databases/$(database)/documents/devis/$(request.resource.data.sourceQuoteId))
+            && getAfter(/databases/$(database)/documents/devis/$(request.resource.data.sourceQuoteId)).data.status == 'converted'
+            && getAfter(/databases/$(database)/documents/devis/$(request.resource.data.sourceQuoteId)).data.convertedOrderId == commandeId
+          )
+        )
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if canCreateDocuments()
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.number == resource.data.number
+        && request.resource.data.kind == resource.data.kind
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.status in ['ordered', 'partially_received', 'received', 'cancelled']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lines', 'status', 'updatedAt', 'updatedBy', 'history'
+        ]);
+      allow delete: if isDirector();
+    }
+
+    match /bonsLivraison/{livraisonId} {
+      allow read: if isActive() && role() in ['directeur', 'commercial'];
+      allow create: if canCreateDocuments()
+        && request.resource.data.id == livraisonId
+        && request.resource.data.number is string
+        && request.resource.data.number.size() > 0
+        && request.resource.data.status == 'delivered'
+        && request.resource.data.orderId is string
+        && request.resource.data.media is list
+        && request.resource.data.media.size() == 0
+        && existsAfter(/databases/$(database)/documents/bonsCommande/$(request.resource.data.orderId))
+        && getAfter(/databases/$(database)/documents/bonsCommande/$(request.resource.data.orderId)).data.kind == 'client'
+        && getAfter(/databases/$(database)/documents/bonsCommande/$(request.resource.data.orderId)).data.status in ['partially_received', 'received']
+        && validDeliverySignature(request.resource.data)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if canCreateDocuments()
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.number == resource.data.number
+        && request.resource.data.orderId == resource.data.orderId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid
+        && validDeliveryMediaList(request.resource.data.media)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'media', 'updatedAt', 'updatedBy', 'history'
+        ])
+        && (
+          (resource.data.status == 'delivered' && request.resource.data.status == 'delivered')
+          || (
+            resource.data.status == 'delivered'
+            && request.resource.data.status == 'cancelled'
+            && existsAfter(/databases/$(database)/documents/bonsCommande/$(resource.data.orderId))
+            && getAfter(/databases/$(database)/documents/bonsCommande/$(resource.data.orderId)).data.status in ['ordered', 'partially_received', 'received']
+          )
+        );
+      allow delete: if isDirector();
+    }
+
+    match /contrats/{contratId} {
+      allow read: if canUseRecouvrement();
+      allow create: if canUseRecouvrement()
+        && request.resource.data.id == contratId
+        && request.resource.data.numero is string
+        && request.resource.data.numero.size() > 0
+        && request.resource.data.montantPeriodeHT is int
+        && request.resource.data.montantPeriodeHT >= 0
+        && request.resource.data.montantPeriodeTTC is int
+        && request.resource.data.montantPeriodeTTC >= request.resource.data.montantPeriodeHT
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if canUseRecouvrement()
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.numero == resource.data.numero
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow delete: if isDirector();
+    }
+
+    match /echeances/{echeanceId} {
+      allow read: if canUseRecouvrement();
+      allow create: if canUseRecouvrement()
+        && request.resource.data.id == echeanceId
+        && request.resource.data.montantPaye == 0
+        && request.resource.data.montantTTC is int
+        && request.resource.data.montantTTC >= 0
+        && request.resource.data.montantHT is int
+        && request.resource.data.montantHT >= 0
+        && request.resource.data.montantPaye <= request.resource.data.montantTTC
+        && request.resource.data.statut == 'ouverte'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if canUseRecouvrement()
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.montantPaye is int
+        && request.resource.data.montantPaye >= 0
+        && request.resource.data.montantTTC is int
+        && request.resource.data.montantTTC >= 0
+        && request.resource.data.montantPaye <= request.resource.data.montantTTC
+        && (request.resource.data.statut != 'annulee' || isDirector())
+        && (
+          (request.resource.data.statut == 'ouverte' && request.resource.data.montantPaye < request.resource.data.montantTTC)
+          || (request.resource.data.statut == 'soldee' && request.resource.data.montantPaye == request.resource.data.montantTTC)
+          || (request.resource.data.statut == 'annulee' && request.resource.data.montantPaye == 0)
+        )
+        && (
+          isDirector()
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'montantPaye', 'statut', 'notes', 'updatedAt', 'updatedBy'
+          ])
+        );
+      allow delete: if isDirector();
+    }
+
+    match /paiements/{paiementId} {
+      allow read: if canUseRecouvrement();
+      allow create: if canUseRecouvrement()
+        && request.resource.data.id == paiementId
+        && request.resource.data.numero is string
+        && request.resource.data.numero.size() > 0
+        && request.resource.data.montant is int
+        && request.resource.data.montant > 0
+        && request.resource.data.annule == false
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if isDirector()
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.numero == resource.data.numero
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && resource.data.annule == false
+        && request.resource.data.annule == true
+        && request.resource.data.motifAnnulation is string
+        && request.resource.data.motifAnnulation.size() > 0
+        && request.resource.data.annulePar == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'annule', 'motifAnnulation', 'annulePar', 'annuleLe', 'updatedAt', 'updatedBy'
+        ]);
+      allow delete: if false;
+    }
+
+    match /relances/{relanceId} {
+      allow read: if canUseRecouvrement();
+      allow create: if canUseRecouvrement()
+        && request.resource.data.id == relanceId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if false;
+      allow delete: if isDirector();
+    }
+
     match /ascenseurs/{ascenseurId} {
       allow read: if isActive();
       allow create: if canManageClientsAndFleet()
@@ -134,13 +595,124 @@ service cloud.firestore {
       allow delete: if isDirector();
     }
 
+    match /interventions/{interventionId} {
+      allow read: if canReadIntervention(resource.data);
+      allow create: if canCreateDocuments()
+        && request.resource.data.id == interventionId
+        && request.resource.data.numero is string
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if validManagerInterventionUpdate() || validTechnicianInterventionUpdate();
+      allow delete: if isDirector();
+
+      match /medias/{mediaId} {
+        function canAccessParentIntervention() {
+          let parent = get(/databases/$(database)/documents/interventions/$(interventionId)).data;
+          return canReadIntervention(parent);
+        }
+        allow read: if canAccessParentIntervention();
+        allow create: if canAccessParentIntervention()
+          && request.resource.data.id == mediaId
+          && request.resource.data.dataUrl is string
+          && request.resource.data.dataUrl.matches('^data:image/jpeg;base64,.*')
+          && request.resource.data.dataUrl.size() <= 280000
+          && request.resource.data.type in ['photo_avant', 'photo_apres', 'signature']
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt is string
+          && request.resource.data.keys().hasOnly(['id', 'dataUrl', 'type', 'createdAt', 'createdBy'])
+          && (
+            role() in ['directeur', 'commercial']
+            || get(/databases/$(database)/documents/interventions/$(interventionId)).data.statut in ['planifiee', 'en_cours', 'en_attente_pieces']
+          );
+        allow update, delete: if false;
+      }
+    }
+
+    match /depots/{depotId} {
+      allow read: if canManageStock()
+        || (isActive()
+          && role() == 'technicien'
+          && resource.data.technicienUid == request.auth.uid);
+      allow create, update: if isDirector() && validDepot();
+      allow delete: if isDirector();
+    }
+
+    match /stockNiveaux/{niveauId} {
+      allow read: if canManageStock()
+        || (isActive()
+          && role() == 'technicien'
+          && exists(/databases/$(database)/documents/depots/$(resource.data.depotId))
+          && get(/databases/$(database)/documents/depots/$(resource.data.depotId)).data.technicienUid == request.auth.uid
+          && get(/databases/$(database)/documents/depots/$(resource.data.depotId)).data.type == 'vehicule');
+      allow create: if canManageStock()
+        && (request.resource.data.quantite >= 0
+          || (isDirector()
+            && get(/databases/$(database)/documents/settings/company).data.autoriserStockNegatif == true));
+      allow update: if canManageStock()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantite', 'updatedAt'])
+          && (request.resource.data.quantite >= 0
+            || (isDirector()
+              && get(/databases/$(database)/documents/settings/company).data.autoriserStockNegatif == true));
+      allow delete: if isDirector();
+    }
+
+    match /stockCouts/{articleId} {
+      allow read, write: if canManageStock();
+    }
+
+    match /mouvements/{mouvementId} {
+      allow read: if canManageStock()
+        || (isActive()
+          && role() == 'technicien'
+          && ((resource.data.depotSourceId is string
+              && exists(/databases/$(database)/documents/depots/$(resource.data.depotSourceId))
+              && get(/databases/$(database)/documents/depots/$(resource.data.depotSourceId)).data.technicienUid == request.auth.uid)
+            || (resource.data.depotDestinationId is string
+              && exists(/databases/$(database)/documents/depots/$(resource.data.depotDestinationId))
+              && get(/databases/$(database)/documents/depots/$(resource.data.depotDestinationId)).data.technicienUid == request.auth.uid)));
+      allow create: if isDirector()
+        || (isCommercial()
+          && request.resource.data.type in [
+            'entree_achat', 'entree_retour', 'entree_manuelle',
+            'sortie_livraison', 'sortie_manuelle', 'transfert', 'casse_perte'
+          ]);
+      allow update: if isDirector()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['annule', 'mouvementInverseId'])
+        && resource.data.annule == false
+        && request.resource.data.annule == true
+        && request.resource.data.mouvementInverseId is string;
+      allow delete: if false;
+    }
+
+    match /inventaires/{inventaireId} {
+      allow read, create, update: if isDirector();
+      allow delete: if false;
+    }
+
     match /{collection}/{document=**} {
       allow read, write: if collection != 'users'
         && collection != 'settings'
         && collection != 'clients'
         && collection != 'ascenseurs'
+        && collection != 'articles'
+        && collection != 'fournisseurs'
+        && collection != 'devis'
+        && collection != 'devis_partages'
+        && collection != 'bonsCommande'
+        && collection != 'bonsLivraison'
         && collection != 'techniciens'
         && collection != 'techniciens_prives'
+        && collection != 'contrats'
+        && collection != 'echeances'
+        && collection != 'paiements'
+        && collection != 'relances'
+        && collection != 'depots'
+        && collection != 'stockNiveaux'
+        && collection != 'stockCouts'
+        && collection != 'mouvements'
+        && collection != 'inventaires'
+        && collection != 'interventions'
         && isActive();
     }
 

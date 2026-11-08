@@ -76,6 +76,7 @@ function cleanFileName(value: string): string {
 export async function generateWord(model: DocumentModel): Promise<Blob> {
   const primary = model.issuer.documentAppearance.primaryColor.replace('#', '')
   const accent = model.options.accentColor.replace('#', '')
+  const isPriceFreeDelivery = model.type === 'livraison'
   const headerCells = [
     new TableCell({
       width: { size: 55, type: WidthType.PERCENTAGE },
@@ -144,12 +145,16 @@ export async function generateWord(model: DocumentModel): Promise<Blob> {
           cell(`${line.designation}${line.description ? `\n${line.description}` : ''}`),
           cell(String(line.quantity), { align: AlignmentType.RIGHT }),
           cell(line.unit, { align: AlignmentType.CENTER }),
-          cell(formatMoney(line.unitPriceHT), { align: AlignmentType.RIGHT }),
-          cell(formatPercent(line.discountPercent), { align: AlignmentType.RIGHT }),
-          cell(formatPercent(line.vatPercent), { align: AlignmentType.RIGHT }),
-          cell(formatMoney(line.unitPriceHT * line.quantity * (1 - line.discountPercent / 100)), {
-            align: AlignmentType.RIGHT,
-          }),
+          ...(!isPriceFreeDelivery
+            ? [
+                cell(formatMoney(line.unitPriceHT), { align: AlignmentType.RIGHT }),
+                cell(formatPercent(line.discountPercent), { align: AlignmentType.RIGHT }),
+                cell(formatPercent(line.vatPercent), { align: AlignmentType.RIGHT }),
+                cell(formatMoney(line.unitPriceHT * line.quantity * (1 - line.discountPercent / 100)), {
+                  align: AlignmentType.RIGHT,
+                }),
+              ]
+            : []),
         ],
         tableHeader: false,
         ...(index % 2 === 1 ? { cantSplit: true } : {}),
@@ -193,18 +198,24 @@ export async function generateWord(model: DocumentModel): Promise<Blob> {
 
   const lineTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [3600, 550, 650, 1250, 650, 600, 1700],
+    columnWidths: isPriceFreeDelivery
+      ? [7000, 1500, 1500]
+      : [3600, 550, 650, 1250, 650, 600, 1700],
     rows: [
       new TableRow({
         tableHeader: true,
         children: [
           cell('Désignation', { header: true }),
-          cell('Qté', { header: true, align: AlignmentType.RIGHT }),
+          cell('Quantité', { header: true, align: AlignmentType.RIGHT }),
           cell('Unité', { header: true, align: AlignmentType.CENTER }),
-          cell('PU HT', { header: true, align: AlignmentType.RIGHT }),
-          cell('Rem.', { header: true, align: AlignmentType.RIGHT }),
-          cell('TVA', { header: true, align: AlignmentType.RIGHT }),
-          cell('Total HT', { header: true, align: AlignmentType.RIGHT }),
+          ...(!isPriceFreeDelivery
+            ? [
+                cell('PU HT', { header: true, align: AlignmentType.RIGHT }),
+                cell('Rem.', { header: true, align: AlignmentType.RIGHT }),
+                cell('TVA', { header: true, align: AlignmentType.RIGHT }),
+                cell('Total HT', { header: true, align: AlignmentType.RIGHT }),
+              ]
+            : []),
         ],
       }),
       ...itemRows,
@@ -366,6 +377,18 @@ export async function generateWord(model: DocumentModel): Promise<Blob> {
         },
         children: [
           new Paragraph({ style: 'TgiTitle', text: model.title }),
+          ...(model.options.showWatermark
+            ? [new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({
+                  text: model.watermarkText || 'BROUILLON',
+                  bold: true,
+                  color: 'B91C1C',
+                  size: 32,
+                  font: 'Arial',
+                })],
+              })]
+            : []),
           ...(model.references ? [text(model.references)] : []),
           recipient,
           new Paragraph({ text: '' }),
@@ -373,11 +396,15 @@ export async function generateWord(model: DocumentModel): Promise<Blob> {
             ? []
             : [
                 lineTable,
-                new Paragraph({ text: '' }),
-                new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'Récapitulatif', bold: true, color: primary })] }),
-                totalsTable,
+                ...(!isPriceFreeDelivery
+                  ? [
+                      new Paragraph({ text: '' }),
+                      new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'Récapitulatif', bold: true, color: primary })] }),
+                      totalsTable,
+                    ]
+                  : []),
               ]),
-          ...(model.options.showAmountInWords
+          ...(!isPriceFreeDelivery && model.options.showAmountInWords
             ? [
                 new Paragraph({
                   children: [

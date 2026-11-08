@@ -11,11 +11,20 @@ import {
   ClientDetailPage,
   ClientsPage,
   CompanySettingsPage,
+  CataloguePage,
+  CommandesPage,
   DocumentDemoPage,
   DocumentEditorPage,
+  DevisPage,
+  DevisPublicPage,
+  FournisseursPage,
+  InterventionDetailPage,
+  InterventionsPage,
   LazyPage,
-  ModulePage,
+  LivraisonsPage,
   ParcPage,
+  RecouvrementPage,
+  StockPage,
   TechnicienDetailPage,
   TechniciensPage,
   UtilisateursPage,
@@ -26,6 +35,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/devis/public/:token',
+    element: <LazyPage><DevisPublicPage /></LazyPage>,
   },
   {
     element: (
@@ -92,10 +105,34 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'catalogue',
+        element: (
+          <RoleGuard module="catalogue">
+            <LazyPage><CataloguePage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'fournisseurs',
+        element: (
+          <RoleGuard module="fournisseurs">
+            <LazyPage><FournisseursPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
         path: 'interventions',
         element: (
           <RoleGuard module="interventions">
-            <LazyPage><ModulePage title="Interventions" description="Suivez les opérations sur le terrain." /></LazyPage>
+            <LazyPage><InterventionsPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'interventions/:id',
+        element: (
+          <RoleGuard module="interventions">
+            <LazyPage><InterventionDetailPage /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -103,7 +140,31 @@ export const router = createBrowserRouter([
         path: 'recouvrement',
         element: (
           <RoleGuard module="recouvrement">
-            <LazyPage><ModulePage title="Recouvrement" description="Suivez les éléments de recouvrement." /></LazyPage>
+            <LazyPage><RecouvrementPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      ...['contrats', 'echeances', 'paiements'].map((section) => ({
+        path: `recouvrement/${section}`,
+        element: (
+          <RoleGuard module="recouvrement">
+            <LazyPage><RecouvrementPage /></LazyPage>
+          </RoleGuard>
+        ),
+      })),
+      {
+        path: 'recouvrement/contrats/:contratId',
+        element: (
+          <RoleGuard module="recouvrement">
+            <LazyPage><RecouvrementPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'recouvrement/clients/:clientId',
+        element: (
+          <RoleGuard module="recouvrement">
+            <LazyPage><RecouvrementPage /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -111,7 +172,7 @@ export const router = createBrowserRouter([
         path: 'devis',
         element: (
           <RoleGuard module="devis">
-            <LazyPage><ModulePage title="Devis" description="Consultez et gérez les devis." /></LazyPage>
+            <LazyPage><DevisPage /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -119,7 +180,7 @@ export const router = createBrowserRouter([
         path: 'commandes',
         element: (
           <RoleGuard module="commandes">
-            <LazyPage><ModulePage title="Bons de commande" description="Suivez les bons de commande." /></LazyPage>
+            <LazyPage><CommandesPage /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -127,7 +188,7 @@ export const router = createBrowserRouter([
         path: 'livraisons',
         element: (
           <RoleGuard module="livraisons">
-            <LazyPage><ModulePage title="Bons de livraison" description="Consultez les bons de livraison." /></LazyPage>
+            <LazyPage><LivraisonsPage /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -135,10 +196,26 @@ export const router = createBrowserRouter([
         path: 'stock',
         element: (
           <RoleGuard module="stock">
-            <LazyPage><ModulePage title="Stock" description="Consultez les articles et leur disponibilité." /></LazyPage>
+            <LazyPage><StockPage /></LazyPage>
           </RoleGuard>
         ),
       },
+      ...['articles', 'mouvements', 'depots', 'inventaires'].map((section) => ({
+        path: `stock/${section}`,
+        element: (
+          <RoleGuard module="stock">
+            <LazyPage><StockPage /></LazyPage>
+          </RoleGuard>
+        ),
+      })),
+      ...['articles/:articleId', 'depots/:depotId', 'inventaires/:inventoryId'].map((path) => ({
+        path: `stock/${path}`,
+        element: (
+          <RoleGuard module="stock">
+            <LazyPage><StockPage /></LazyPage>
+          </RoleGuard>
+        ),
+      })),
       {
         path: 'parametres',
         element: (

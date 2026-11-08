@@ -10,6 +10,8 @@ export type AppModule =
   | 'devis'
   | 'commandes'
   | 'livraisons'
+  | 'catalogue'
+  | 'fournisseurs'
   | 'stock'
   | 'parametres'
 
@@ -58,6 +60,8 @@ function matrixFor(
     devis: grants.devis ?? noAccess,
     commandes: grants.commandes ?? noAccess,
     livraisons: grants.livraisons ?? noAccess,
+    catalogue: grants.catalogue ?? noAccess,
+    fournisseurs: grants.fournisseurs ?? noAccess,
     stock: grants.stock ?? noAccess,
     parametres: grants.parametres ?? noAccess,
   }
@@ -74,6 +78,8 @@ export const permissions: Record<UserRole, PermissionMatrix> = {
     devis: fullAccess,
     commandes: fullAccess,
     livraisons: fullAccess,
+    catalogue: fullAccess,
+    fournisseurs: fullAccess,
     stock: fullAccess,
     parametres: fullAccess,
   }),
@@ -81,7 +87,7 @@ export const permissions: Record<UserRole, PermissionMatrix> = {
     clients: manageWithoutDelete,
     parc: manageWithoutDelete,
     techniciens: readOnly,
-    interventions: readOnly,
+    interventions: manageWithoutDelete,
     recouvrement: {
       voir: true,
       creer: true,
@@ -91,7 +97,14 @@ export const permissions: Record<UserRole, PermissionMatrix> = {
     devis: fullAccess,
     commandes: fullAccess,
     livraisons: fullAccess,
-    stock: readOnly,
+    catalogue: manageWithoutDelete,
+    fournisseurs: manageWithoutDelete,
+    stock: {
+      voir: true,
+      creer: true,
+      modifier: true,
+      supprimer: false,
+    },
   }),
   technicien: matrixFor({
     clients: readOnly,

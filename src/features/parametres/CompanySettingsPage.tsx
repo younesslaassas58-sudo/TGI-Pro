@@ -54,6 +54,7 @@ const settingsSchema = z.object({
   patente: z.string(),
   cnss: z.string(),
   defaultVat: z.number().min(0).max(100),
+  autoriserStockNegatif: z.boolean(),
   legalMentions: z.string(),
   bankAccounts: z.array(
     z.object({
@@ -91,10 +92,25 @@ const settingsSchema = z.object({
     intervention: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     client: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     ascenseur: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    article: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    fournisseur: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    bon_commande_client: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    bon_commande_fournisseur: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    bon_livraison: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     fiche_client: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     fiche_ascenseur: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     technicien: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     fiche_technicien: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    contrat: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    releve: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    relance: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    mouvement_stock: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    inventaire: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    bon_entree: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(1).max(9999) }),
+    bon_sortie: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(1).max(9999) }),
+    bon_transfert: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(1).max(9999) }),
+    bon_intervention: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(1).max(9999) }),
+    rapport_intervention: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(1).max(9999) }),
   }),
 })
 
@@ -514,6 +530,14 @@ export function CompanySettingsPage() {
 
               {tab === 'numbering' && (
                 <section className="space-y-3" aria-label="Numérotation des documents">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <ToggleField
+                      label="Autoriser le directeur à valider un stock négatif"
+                      checked={values.autoriserStockNegatif}
+                      onChange={(value) => setValue('autoriserStockNegatif', value, { shouldDirty: true })}
+                    />
+                    <p className="mt-1 text-xs text-amber-800">Désactivé par défaut. Cette option ne s’applique jamais aux autres rôles.</p>
+                  </div>
                   {(Object.keys(documentNumberLabels) as Array<keyof typeof documentNumberLabels>).map((type) => (
                     <div key={type} className="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[1.1fr_0.7fr_1.2fr_0.7fr_0.7fr]">
                       <p className="self-center text-sm font-semibold text-navy-900">{documentNumberLabels[type]}</p>

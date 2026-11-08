@@ -114,7 +114,7 @@ function fromCents(value: number): number {
   return value / 100
 }
 
-export function calculateTotals(lines: DocumentLine[]): DocumentTotals {
+export function calculateTotals(lines: DocumentLine[], globalDiscountPercent = 0): DocumentTotals {
   let subtotalCents = 0
   let discountCents = 0
   const taxableByRate = new Map<number, number>()
@@ -131,6 +131,29 @@ export function calculateTotals(lines: DocumentLine[]): DocumentTotals {
     discountCents += lineDiscountCents
     taxableByRate.set(rate, (taxableByRate.get(rate) ?? 0) + taxableCents)
   }
+
+  const taxableTotalCents = subtotalCents - discountCents
+  const globalDiscount = Math.min(100, Math.max(0, Number.isFinite(globalDiscountPercent) ? globalDiscountPercent : 0))
+  const globalDiscountCents = Math.round(taxableTotalCents * globalDiscount / 100)
+  if (globalDiscountCents > 0 && taxableTotalCents > 0) {
+    const allocations = [...taxableByRate.entries()].map(([rate, taxableCents]) => {
+      const exactShare = globalDiscountCents * taxableCents / taxableTotalCents
+      const allocatedCents = Math.floor(exactShare)
+      return { rate, taxableCents, allocatedCents, fractionalCent: exactShare - allocatedCents }
+    })
+    let remainingCents = globalDiscountCents - allocations.reduce((sum, item) => sum + item.allocatedCents, 0)
+    const remainderOrder = [...allocations].sort(
+      (left, right) => right.fractionalCent - left.fractionalCent || left.rate - right.rate,
+    )
+    for (let index = 0; remainingCents > 0; index += 1, remainingCents -= 1) {
+      const allocation = remainderOrder[index % remainderOrder.length]
+      allocation.allocatedCents += 1
+    }
+    for (const allocation of allocations) {
+      taxableByRate.set(allocation.rate, allocation.taxableCents - allocation.allocatedCents)
+    }
+  }
+  discountCents += globalDiscountCents
 
   const vatByRate = [...taxableByRate.entries()]
     .sort(([rateA], [rateB]) => rateA - rateB)
