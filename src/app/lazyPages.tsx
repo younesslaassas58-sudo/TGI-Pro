@@ -37,6 +37,18 @@ export const AscenseurDetailPage = lazy(async () =>
   import('@/features/parc/AscenseurDetailPage').then((module) => ({ default: module.AscenseurDetailPage })),
 )
 
+export const TechniciensPage = lazy(async () =>
+  import('@/features/techniciens/TechniciensPage').then((module) => ({ default: module.TechniciensPage })),
+)
+
+export const TechnicienDetailPage = lazy(async () =>
+  import('@/features/techniciens/TechnicienDetailPage').then((module) => ({ default: module.TechnicienDetailPage })),
+)
+
+export const UtilisateursPage = lazy(async () =>
+  import('@/features/utilisateurs/UtilisateursPage').then((module) => ({ default: module.UtilisateursPage })),
+)
+
 export function LazyPage({ children }: { children: ReactNode }) {
   return <Suspense fallback={<LoadingScreen />}>{children}</Suspense>
 }

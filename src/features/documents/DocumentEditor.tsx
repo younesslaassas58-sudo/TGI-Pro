@@ -33,7 +33,7 @@ import type { DocumentModel } from './types'
 
 const editorSchema = z.object({
   type: z.enum(['devis', 'commande', 'livraison', 'facture', 'recu', 'intervention', 'client', 'fiche']),
-  numberingType: z.enum(['fiche_client', 'fiche_ascenseur']).optional(),
+  numberingType: z.enum(['fiche_client', 'fiche_ascenseur', 'fiche_technicien']).optional(),
   number: z.string().min(1, 'Le numéro du document est obligatoire.'),
   date: z.string().min(1, 'La date est obligatoire.'),
   title: z.string().min(1, 'Le titre est obligatoire.'),
@@ -72,6 +72,7 @@ const editorSchema = z.object({
     fields: z.array(z.object({ id: z.string(), label: z.string(), value: z.string() })).optional(),
     table: z.object({ columns: z.array(z.string()), rows: z.array(z.array(z.string())) }).optional(),
     checks: z.array(z.object({ id: z.string(), label: z.string(), checked: z.boolean() })).optional(),
+    imageData: z.string().optional(),
   })),
   options: z.object({
     showLogo: z.boolean(),
@@ -324,6 +325,7 @@ export function DocumentEditor({ initialModel, onLoadStressTest }: DocumentEdito
                   <select id="fiche-number-type" className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm" {...register('numberingType')}>
                     <option value="fiche_client">Fiche client</option>
                     <option value="fiche_ascenseur">Fiche appareil</option>
+                    <option value="fiche_technicien">Fiche technicien</option>
                   </select>
                 </div>}
                 <div>

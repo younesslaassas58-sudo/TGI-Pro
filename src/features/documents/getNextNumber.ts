@@ -8,7 +8,7 @@ export async function getNextNumber(type: DocumentNumberType): Promise<string> {
   const company = await fetchCompanySettings()
   const settings = company.numbering[type] ?? defaultCompanySettings.numbering[type]
   const year = new Date().getFullYear()
-  const key = `${type}_${year}`
+  const key = type === 'technicien' ? type : `${type}_${year}`
   const counterRef = doc(db, 'settings', 'counters', 'items', key)
 
   const value = await runTransaction(db, async (transaction) => {

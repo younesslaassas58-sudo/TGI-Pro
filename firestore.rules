@@ -36,16 +36,38 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isActive());
-      allow create: if isDirector();
-      allow update: if isDirector()
-        || (
-          isActive()
-          && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['displayName', 'phone', 'photoURL', 'civilite'])
-        );
+      allow read: if isSignedIn() && (request.auth.uid == uid || isDirector());
+      allow create: if false;
+      allow update: if isActive()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName', 'phone', 'photoURL', 'civilite']);
       allow delete: if false;
+    }
+
+    match /techniciens/{technicienId} {
+      allow read: if isDirector()
+        || (isActive() && (
+          role() == 'commercial'
+          || resource.data.uidCompte == request.auth.uid
+        ));
+      allow create: if isDirector()
+        && request.resource.data.id == technicienId
+        && request.resource.data.matricule is string
+        && request.resource.data.matricule.size() > 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if isDirector()
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.matricule == resource.data.matricule
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isDirector();
+    }
+
+    match /techniciens_prives/{technicienId} {
+      allow read, write: if isDirector();
     }
 
     match /settings/{settingId} {
@@ -117,6 +139,8 @@ service cloud.firestore {
         && collection != 'settings'
         && collection != 'clients'
         && collection != 'ascenseurs'
+        && collection != 'techniciens'
+        && collection != 'techniciens_prives'
         && isActive();
     }
 

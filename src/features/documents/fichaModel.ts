@@ -4,6 +4,8 @@ import type { Client } from '@/features/clients/types'
 import type { Ascenseur } from '@/features/parc/types'
 import { clientTypeLabels } from '@/features/clients/types'
 import { contractLabels, deviceTypeLabels } from '@/features/parc/types'
+import type { Technician, TechnicianPrivate } from '@/features/techniciens/types'
+import { specialtyLabels } from '@/features/techniciens/types'
 import type { DocumentModel, DocumentSection, FichaField } from './types'
 
 function fields(id: string, values: Array<[string, string | number]>): DocumentSection {
@@ -184,4 +186,81 @@ export function createAscenseurFicha(
       { id: 'observations', title: 'Observations', kind: 'text', content: '' },
     ],
   )
+}
+
+export function createTechnicienFicha(
+  technician: Technician,
+  issuer: CompanySettings,
+  number: string,
+  privateData?: TechnicianPrivate,
+): DocumentModel {
+  const professional = fields('Informations professionnelles', [
+    ['Matricule', technician.matricule],
+    ['Nom', technician.nom],
+    ['Prénom', technician.prenom],
+    ['Poste', technician.poste],
+    ['Téléphone', technician.telephone],
+    ['E-mail professionnel', technician.email],
+    ['Zone d’intervention', technician.zoneIntervention],
+    ['Disponibilité', technician.disponibilite],
+    ['Statut', technician.statut === 'conge' ? 'En congé' : technician.statut === 'actif' ? 'Actif' : 'Inactif'],
+    ['Véhicule', technician.vehicule],
+    ['Spécialités', technician.specialites.map((item) => specialtyLabels[item]).join(', ')],
+  ])
+  professional.title = 'Informations professionnelles'
+
+  const sections: DocumentSection[] = []
+  if (technician.photoURL) sections.push({
+    id: 'photo',
+    title: 'Photo du technicien',
+    kind: 'text',
+    content: '',
+    imageData: technician.photoURL,
+  })
+  sections.push(professional, {
+    id: 'habilitations',
+    title: 'Habilitations et certifications',
+    kind: 'table',
+    content: '',
+    table: {
+      columns: ['Intitulé', 'Organisme', 'Obtention', 'Expiration'],
+      rows: technician.habilitations.map((item) => [item.intitule, item.organisme, item.dateObtention, item.dateExpiration]),
+    },
+  })
+  if (privateData) {
+    const humanResources = fields('Données personnelles RH', [
+      ['CIN', privateData.cin],
+      ['Date de naissance', privateData.dateNaissance],
+      ['Adresse', privateData.adresse],
+      ['Date d’embauche', privateData.dateEmbauche],
+      ['Type de contrat', privateData.typeContrat],
+      ['Personne à prévenir', privateData.personneUrgenceNom],
+      ['Téléphone d’urgence', privateData.personneUrgenceTelephone],
+    ])
+    humanResources.title = 'Données personnelles RH — confidentiel'
+    sections.push(humanResources, {
+      id: 'notes-rh',
+      title: 'Notes RH',
+      kind: 'text',
+      content: privateData.notesRH,
+    })
+  }
+
+  const model = baseModel(
+    issuer,
+    `Fiche technicien — ${technician.prenom} ${technician.nom}`,
+    number,
+    {
+      name: `${technician.prenom} ${technician.nom}`,
+      address: '',
+      city: technician.zoneIntervention,
+      ice: '',
+      phone: technician.telephone,
+      email: technician.email,
+    },
+    'fiche_technicien',
+    sections,
+  )
+  model.options.showAmountInWords = false
+  return model
 }

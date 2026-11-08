@@ -11,7 +11,7 @@ export type DocumentType =
   | 'fiche'
 
 export type DocumentOrientation = 'portrait' | 'landscape'
-export type FichaNumberingType = 'fiche_client' | 'fiche_ascenseur'
+export type FichaNumberingType = 'fiche_client' | 'fiche_ascenseur' | 'fiche_technicien'
 
 export interface FichaField {
   id: string
@@ -53,6 +53,7 @@ export interface DocumentSection {
   fields?: FichaField[]
   table?: { columns: string[]; rows: string[][] }
   checks?: FichaCheck[]
+  imageData?: string
 }
 
 export interface DocumentDisplayOptions {

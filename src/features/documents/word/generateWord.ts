@@ -254,6 +254,15 @@ export async function generateWord(model: DocumentModel): Promise<Blob> {
 
   const fichaSections = model.sections.flatMap((section) => {
     const content: Array<Paragraph | Table> = [text(section.title, { bold: true, color: primary, size: 20 })]
+    if (section.imageData) {
+      content.push(new Paragraph({
+        children: [new ImageRun({
+          type: 'jpg',
+          data: imageBytes(section.imageData),
+          transformation: { width: 110, height: 110 },
+        })],
+      }))
+    }
     if (section.kind === 'fields' && section.fields?.length) {
       content.push(new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },

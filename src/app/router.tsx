@@ -16,6 +16,9 @@ import {
   LazyPage,
   ModulePage,
   ParcPage,
+  TechnicienDetailPage,
+  TechniciensPage,
+  UtilisateursPage,
 } from '@/app/lazyPages'
 import { NotFoundPage } from '@/app/pages/NotFoundPage'
 
@@ -68,7 +71,23 @@ export const router = createBrowserRouter([
         path: 'techniciens',
         element: (
           <RoleGuard module="techniciens">
-            <LazyPage><ModulePage title="Techniciens" description="Retrouvez les équipes techniques." /></LazyPage>
+            <LazyPage><TechniciensPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'techniciens/:id',
+        element: (
+          <RoleGuard module="techniciens">
+            <LazyPage><TechnicienDetailPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'utilisateurs',
+        element: (
+          <RoleGuard module="utilisateurs">
+            <LazyPage><UtilisateursPage /></LazyPage>
           </RoleGuard>
         ),
       },

@@ -33,6 +33,14 @@ export async function generateExcel(model: DocumentModel): Promise<Blob> {
       sectionTitle.value = section.title
       sectionTitle.font = { name: 'Arial', bold: true, color: { argb: safeColor(model.issuer.documentAppearance.primaryColor) } }
       rowIndex += 1
+      if (section.imageData) {
+        const base64 = section.imageData.split(',')[1]
+        if (base64) {
+          const imageId = workbook.addImage({ base64, extension: 'jpeg' })
+          sheet.addImage(imageId, { tl: { col: 0, row: rowIndex - 1 }, ext: { width: 110, height: 110 } })
+          rowIndex += 8
+        }
+      }
       if (section.kind === 'fields' && section.fields) {
         for (let index = 0; index < section.fields.length; index += 2) {
           const left = section.fields[index]

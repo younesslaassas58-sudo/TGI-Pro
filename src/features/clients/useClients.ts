@@ -22,9 +22,14 @@ export interface CommercialOption {
 }
 
 export function useCommercials() {
+  const profile = useAuth((state) => state.profile)
   return useQuery({
-    queryKey: ['client-commercials'],
+    queryKey: ['client-commercials', profile?.role, profile?.uid],
     queryFn: async (): Promise<CommercialOption[]> => {
+      if (profile?.role === 'commercial') {
+        return [{ uid: profile.uid, displayName: profile.displayName || profile.email }]
+      }
+      if (profile?.role !== 'directeur') return []
       const snapshot = await getDocs(collection(db, 'users'))
       return snapshot.docs.flatMap((item) => {
         const data = item.data()

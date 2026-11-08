@@ -52,6 +52,8 @@ function mergeSettings(value: unknown): CompanySettings {
       ascenseur: mergeNumbering(saved.numbering?.ascenseur, 'ascenseur'),
       fiche_client: mergeNumbering(saved.numbering?.fiche_client, 'fiche_client'),
       fiche_ascenseur: mergeNumbering(saved.numbering?.fiche_ascenseur, 'fiche_ascenseur'),
+      technicien: mergeNumbering(saved.numbering?.technicien, 'technicien'),
+      fiche_technicien: mergeNumbering(saved.numbering?.fiche_technicien, 'fiche_technicien'),
     },
   }
 }

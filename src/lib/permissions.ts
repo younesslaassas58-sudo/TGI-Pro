@@ -4,6 +4,7 @@ export type AppModule =
   | 'clients'
   | 'parc'
   | 'techniciens'
+  | 'utilisateurs'
   | 'interventions'
   | 'recouvrement'
   | 'devis'
@@ -51,6 +52,7 @@ function matrixFor(
     clients: grants.clients ?? noAccess,
     parc: grants.parc ?? noAccess,
     techniciens: grants.techniciens ?? noAccess,
+    utilisateurs: grants.utilisateurs ?? noAccess,
     interventions: grants.interventions ?? noAccess,
     recouvrement: grants.recouvrement ?? noAccess,
     devis: grants.devis ?? noAccess,
@@ -66,6 +68,7 @@ export const permissions: Record<UserRole, PermissionMatrix> = {
     clients: fullAccess,
     parc: fullAccess,
     techniciens: fullAccess,
+    utilisateurs: fullAccess,
     interventions: fullAccess,
     recouvrement: fullAccess,
     devis: fullAccess,
@@ -93,6 +96,7 @@ export const permissions: Record<UserRole, PermissionMatrix> = {
   technicien: matrixFor({
     clients: readOnly,
     parc: readOnly,
+    techniciens: readOnly,
     interventions: {
       voir: true,
       creer: false,

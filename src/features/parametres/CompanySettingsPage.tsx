@@ -12,6 +12,7 @@ import {
   Settings2,
   Trash2,
   Upload,
+  Users,
 } from 'lucide-react'
 import { doc, setDoc } from 'firebase/firestore'
 import { Link } from 'react-router-dom'
@@ -92,6 +93,8 @@ const settingsSchema = z.object({
     ascenseur: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     fiche_client: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
     fiche_ascenseur: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    technicien: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
+    fiche_technicien: z.object({ prefix: z.string().min(1), format: z.string().min(1), counterLength: z.number().int().min(1).max(10), year: z.number().int().min(2000).max(9999) }),
   }),
 })
 
@@ -318,12 +321,20 @@ export function CompanySettingsPage() {
         title="Paramètres de la société"
         description="Les informations ci-dessous seront reprises dans les documents TGI."
         action={
-          <Link
-            to="/documents/demo"
-            className="text-xs font-semibold text-navy-700 transition hover:text-gold-700"
-          >
-            Ouvrir le document de démonstration →
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            {canEdit && <Link
+              to="/utilisateurs"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-navy-700 transition hover:text-gold-700"
+            >
+              <Users size={15} aria-hidden="true" /> Gérer les utilisateurs
+            </Link>}
+            <Link
+              to="/documents/demo"
+              className="text-xs font-semibold text-navy-700 transition hover:text-gold-700"
+            >
+              Ouvrir le document de démonstration →
+            </Link>
+          </div>
         }
       />
       <input

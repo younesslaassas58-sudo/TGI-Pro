@@ -302,6 +302,7 @@ export function PdfDocument({ model }: { model: DocumentModel }) {
         {model.sections.map((section) => (
           <View key={section.id} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.imageData && <Image src={section.imageData} style={{ width: 110, height: 110, objectFit: 'cover', marginBottom: 8 }} />}
             {section.kind === 'fields' && section.fields && (
               <View style={styles.fichaGrid}>
                 {section.fields.map((field) => (

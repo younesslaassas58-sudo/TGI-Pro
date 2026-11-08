@@ -12,6 +12,7 @@ import {
   PackageOpen,
   Settings,
   Users,
+  UserCog,
   Wrench,
   X,
 } from 'lucide-react'
@@ -61,7 +62,10 @@ const groups: NavigationGroup[] = [
   },
   {
     label: 'Gestion',
-    items: [{ label: 'Paramètres', to: '/parametres', icon: Settings, module: 'parametres' }],
+    items: [
+      { label: 'Paramètres', to: '/parametres', icon: Settings, module: 'parametres' },
+      { label: 'Utilisateurs', to: '/utilisateurs', icon: UserCog, module: 'utilisateurs' },
+    ],
   },
 ]
 

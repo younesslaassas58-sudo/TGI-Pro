@@ -9,6 +9,8 @@ export type DocumentNumberType =
   | 'ascenseur'
   | 'fiche_client'
   | 'fiche_ascenseur'
+  | 'technicien'
+  | 'fiche_technicien'
 
 export type DocumentFont = 'Helvetica' | 'Times-Roman' | 'Courier'
 export type HeaderLogoPosition = 'gauche' | 'droite'

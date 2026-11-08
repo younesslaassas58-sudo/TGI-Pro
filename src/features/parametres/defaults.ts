@@ -13,6 +13,8 @@ const numberingDefaults: Record<DocumentNumberType, { prefix: string; format: st
   ascenseur: { prefix: 'ASC', format: '{PREFIX}-{YYYY}-{NUM}' },
   fiche_client: { prefix: 'FCL', format: '{PREFIX}-{YYYY}-{NUM}' },
   fiche_ascenseur: { prefix: 'FAS', format: '{PREFIX}-{YYYY}-{NUM}' },
+  technicien: { prefix: 'TEC', format: '{PREFIX}-{NUM}' },
+  fiche_technicien: { prefix: 'FTC', format: '{PREFIX}-{YYYY}-{NUM}' },
 }
 
 export const defaultCompanySettings: CompanySettings = {
@@ -68,4 +70,6 @@ export const documentNumberLabels: Record<DocumentNumberType, string> = {
   ascenseur: 'Fiche appareil',
   fiche_client: 'Fiche client (document)',
   fiche_ascenseur: 'Fiche appareil (document)',
+  technicien: 'Technicien',
+  fiche_technicien: 'Fiche technicien',
 }
