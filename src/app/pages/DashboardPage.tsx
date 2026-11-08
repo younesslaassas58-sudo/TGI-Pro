@@ -1,6 +1,8 @@
 import {
+  AlertTriangle,
   ArrowRight,
   ArrowUpRight,
+  CalendarDays,
   ClipboardCheck,
   Clock3,
   FilePlus2,
@@ -14,30 +16,10 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth } from '@/features/auth/authStore'
 import { hasPermission, type AppModule } from '@/lib/permissions'
 import { displayNameOrEmail, roleLabel } from '@/lib/user'
-
-const temporaryStats = [
-  {
-    label: 'Interventions en cours',
-    value: '12',
-    trend: '+2 cette semaine',
-    icon: Wrench,
-    tone: 'bg-navy-50 text-navy-700',
-  },
-  {
-    label: 'À planifier',
-    value: '08',
-    trend: 'Données provisoires',
-    icon: Clock3,
-    tone: 'bg-warning-50 text-warning-700',
-  },
-  {
-    label: 'Clôturées ce mois',
-    value: '34',
-    trend: '+8 % · provisoire',
-    icon: ClipboardCheck,
-    tone: 'bg-success-50 text-success-700',
-  },
-]
+import { useInterventions } from '@/features/interventions/useInterventions'
+import { useDevis } from '@/features/devis/useDevis'
+import { useEcheances } from '@/features/recouvrement/useRecouvrement'
+import { deriveStatut } from '@/features/recouvrement/logic'
 
 const quickActions: {
   label: string
@@ -75,8 +57,13 @@ const quickActions: {
 
 export function DashboardPage() {
   const profile = useAuth((state) => state.profile)
+  const { data: interventions = [], isLoading: interventionsLoading } = useInterventions()
+  const commercialAccess = profile?.role === 'directeur' || profile?.role === 'commercial'
+  const { data: quotes = [], isLoading: quotesLoading } = useDevis(commercialAccess)
+  const { data: dues = [], isLoading: duesLoading } = useEcheances(commercialAccess)
   const name = profile ? displayNameOrEmail(profile) : 'bienvenue'
   const civilite = profile?.civilite ?? 'M.'
+  const todayKey = new Date().toISOString().slice(0, 10)
   const today = new Intl.DateTimeFormat('fr-MA', {
     weekday: 'long',
     day: 'numeric',
@@ -86,6 +73,52 @@ export function DashboardPage() {
   const availableActions = quickActions.filter(({ module, action }) =>
     hasPermission(profile?.role, module, action),
   )
+  const activeInterventions = interventions.filter(
+    (item) => !['terminee', 'cloturee', 'annulee'].includes(item.statut),
+  )
+  const statsLoading = interventionsLoading || (commercialAccess && (quotesLoading || duesLoading))
+  const dashboardStats = [
+    {
+      label: 'Interventions prévues aujourd’hui',
+      value: interventions.filter((item) => item.datePrevue === todayKey && !['annulee', 'cloturee'].includes(item.statut)).length,
+      trend: 'Selon les interventions accessibles',
+      icon: CalendarDays,
+      tone: 'bg-navy-50 text-navy-700',
+      to: '/interventions',
+    },
+    {
+      label: 'Interventions urgentes ouvertes',
+      value: activeInterventions.filter((item) => item.priorite === 'urgente').length,
+      trend: 'À traiter en priorité',
+      icon: AlertTriangle,
+      tone: 'bg-danger-50 text-danger-700',
+      to: '/interventions',
+    },
+    {
+      label: 'Interventions en cours',
+      value: activeInterventions.filter((item) => item.statut === 'en_cours').length,
+      trend: 'Toutes périodes',
+      icon: Wrench,
+      tone: 'bg-success-50 text-success-700',
+      to: '/interventions',
+    },
+    ...(commercialAccess ? [{
+      label: 'Devis à relancer',
+      value: quotes.filter((item) => item.status === 'sent' && item.validUntil <= todayKey).length,
+      trend: 'Devis envoyés arrivés à échéance',
+      icon: Clock3,
+      tone: 'bg-warning-50 text-warning-700',
+      to: '/devis',
+    }] : []),
+    ...(commercialAccess ? [{
+      label: 'Échéances en retard',
+      value: dues.filter((item) => deriveStatut(item, todayKey) === 'en_retard').length,
+      trend: 'À suivre dans le recouvrement',
+      icon: ClipboardCheck,
+      tone: 'bg-danger-50 text-danger-700',
+      to: '/recouvrement/echeances',
+    }] : []),
+  ]
 
   return (
     <>
@@ -115,22 +148,19 @@ export function DashboardPage() {
               Retrouvez ici les repères essentiels de votre activité TGI Ascenseurs.
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start rounded-xl border border-gold-300/15 bg-white/[0.04] px-3 py-2 text-xs text-slate-300 sm:self-auto">
-            <span className="size-1.5 rounded-full bg-gold-400" />
-            Aperçu provisoire
-          </div>
         </div>
         <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
       </Card>
 
-      <section aria-label="Indicateurs provisoires" className="grid gap-4 md:grid-cols-3">
-        {temporaryStats.map(({ label, value, trend, icon: Icon, tone }) => (
-          <Card key={label} className="group relative overflow-hidden border-slate-200/80 p-5 shadow-[0_4px_18px_rgba(11,31,58,0.035)] transition duration-200 hover:-translate-y-0.5 hover:shadow-card sm:p-6">
+      <section aria-label="Indicateurs opérationnels" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {dashboardStats.map(({ label, value, trend, icon: Icon, tone, to }) => (
+          <Link key={label} to={to} className="block min-w-0">
+          <Card className="group relative h-full overflow-hidden border-slate-200/80 p-5 shadow-[0_4px_18px_rgba(11,31,58,0.035)] transition duration-200 hover:-translate-y-0.5 hover:shadow-card sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-slate-500">{label}</p>
                 <p className="mt-3 font-heading text-3xl font-semibold tracking-tight text-navy-950">
-                  {value}
+                  {statsLoading ? '…' : value}
                 </p>
                 <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
                   <span className="size-1.5 rounded-full bg-gold-400" />
@@ -141,10 +171,8 @@ export function DashboardPage() {
                 <Icon size={18} aria-hidden="true" />
               </span>
             </div>
-            <span className="absolute right-5 top-6 rounded-full border border-slate-200 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-              Provisoire
-            </span>
           </Card>
+          </Link>
         ))}
       </section>
 

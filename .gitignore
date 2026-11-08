@@ -19,6 +19,11 @@ dist-ssr
 *private-key*.json
 *privateKey*.json
 firebase-adminsdk-*.json
+*-credentials.json
+*-key*.json
+*.pem
+*.p12
+*.key
 
 # Editor directories and files
 .vscode/*

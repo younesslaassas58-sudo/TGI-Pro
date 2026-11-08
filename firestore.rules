@@ -485,12 +485,21 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.createdAt == request.resource.data.updatedAt;
-      allow update: if canUseRecouvrement()
+      allow update: if isActive()
         && request.resource.data.id == resource.data.id
         && request.resource.data.numero == resource.data.numero
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.updatedBy == request.auth.uid;
+        && request.resource.data.updatedBy == request.auth.uid
+        && (
+          isDirector()
+          || (
+            isCommercial()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'statut', 'dateResiliation', 'motifResiliation', 'updatedAt', 'updatedBy'
+            ])
+          )
+        );
       allow delete: if isDirector();
     }
 
@@ -690,32 +699,26 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /{collection}/{document=**} {
-      allow read, write: if collection != 'users'
-        && collection != 'settings'
-        && collection != 'clients'
-        && collection != 'ascenseurs'
-        && collection != 'articles'
-        && collection != 'fournisseurs'
-        && collection != 'devis'
-        && collection != 'devis_partages'
-        && collection != 'bonsCommande'
-        && collection != 'bonsLivraison'
-        && collection != 'techniciens'
-        && collection != 'techniciens_prives'
-        && collection != 'contrats'
-        && collection != 'echeances'
-        && collection != 'paiements'
-        && collection != 'relances'
-        && collection != 'depots'
-        && collection != 'stockNiveaux'
-        && collection != 'stockCouts'
-        && collection != 'mouvements'
-        && collection != 'inventaires'
-        && collection != 'interventions'
-        && isActive();
+    // Journal d'activité : ajout seul, consultable uniquement par le directeur.
+    match /auditLogs/{logId} {
+      allow read: if isDirector();
+      allow create: if isActive()
+        && request.resource.data.keys().hasOnly([
+          'date', 'uid', 'nom', 'role', 'action', 'entityType', 'entityId', 'resume', 'meta'
+        ])
+        && request.resource.data.date is timestamp
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == role()
+        && request.resource.data.nom is string
+        && request.resource.data.action is string
+        && request.resource.data.entityType is string
+        && request.resource.data.entityId is string
+        && request.resource.data.resume is string
+        && request.resource.data.meta is map;
+      allow update, delete: if false;
     }
 
+    // Tout document sans règle explicite est refusé.
     match /{document=**} {
       allow read, write: if false;
     }

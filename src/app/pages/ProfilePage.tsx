@@ -4,11 +4,16 @@ import { Camera, UserRound } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { updateDoc, doc, deleteField } from 'firebase/firestore'
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from 'firebase/auth'
 import { Avatar, Button, Card, Input, Label } from '@/components/ui'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth, updateAuthProfile } from '@/features/auth/authStore'
 import { useToast } from '@/components/ui'
-import { db } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
 import type { UserProfile } from '@/types/user'
 import { roleLabel } from '@/lib/user'
 import { compressProfilePhoto } from '@/lib/compressProfilePhoto'
@@ -19,7 +24,46 @@ const profileSchema = z.object({
   phone: z.string().trim().max(30, 'Le numéro de téléphone est trop long.'),
 })
 
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Saisissez votre mot de passe actuel.'),
+    newPassword: z
+      .string()
+      .min(10, 'Le nouveau mot de passe doit contenir au moins 10 caractères.')
+      .regex(/[a-z]/, 'Ajoutez au moins une minuscule.')
+      .regex(/[A-Z]/, 'Ajoutez au moins une majuscule.')
+      .regex(/[0-9]/, 'Ajoutez au moins un chiffre.')
+      .regex(/[^A-Za-z0-9]/, 'Ajoutez au moins un caractère spécial.'),
+    confirmPassword: z.string().min(1, 'Confirmez votre nouveau mot de passe.'),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    message: 'Les deux nouveaux mots de passe ne correspondent pas.',
+    path: ['confirmPassword'],
+  })
+
 type ProfileValues = z.infer<typeof profileSchema>
+type PasswordValues = z.infer<typeof passwordSchema>
+
+function passwordChangeError(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    switch (error.code) {
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'Le mot de passe actuel est incorrect.'
+      case 'auth/weak-password':
+        return 'Le nouveau mot de passe est trop faible.'
+      case 'auth/requires-recent-login':
+        return 'La session doit être renouvelée. Déconnectez-vous puis reconnectez-vous avant de réessayer.'
+      case 'auth/network-request-failed':
+        return 'Connexion réseau impossible. Vérifiez votre connexion.'
+      case 'auth/too-many-requests':
+        return 'Trop de tentatives. Veuillez réessayer plus tard.'
+      default:
+        return 'Impossible de modifier le mot de passe. Veuillez réessayer.'
+    }
+  }
+  return 'Impossible de modifier le mot de passe. Veuillez réessayer.'
+}
 
 export function ProfilePage() {
   const profile = useAuth((state) => state.profile)
@@ -28,6 +72,8 @@ export function ProfilePage() {
   const [photoURL, setPhotoURL] = useState(profile?.photoURL ?? '')
   const [photoLoading, setPhotoLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -39,6 +85,15 @@ export function ProfilePage() {
       civilite: profile?.civilite ?? 'M.',
       phone: profile?.phone ?? '',
     },
+  })
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPasswordForm,
+    formState: { errors: passwordErrors },
+  } = useForm<PasswordValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   })
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -84,6 +139,27 @@ export function ProfilePage() {
       toast.error('Impossible de mettre à jour votre profil. Veuillez réessayer.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function changePassword(values: PasswordValues) {
+    const user = auth.currentUser
+    if (!user?.email) {
+      setPasswordError('Votre session e-mail est introuvable. Reconnectez-vous puis réessayez.')
+      return
+    }
+    setPasswordSaving(true)
+    setPasswordError(null)
+    try {
+      const credential = EmailAuthProvider.credential(user.email, values.currentPassword)
+      await reauthenticateWithCredential(user, credential)
+      await updatePassword(user, values.newPassword)
+      resetPasswordForm()
+      toast.success('Votre mot de passe a été modifié.')
+    } catch (error: unknown) {
+      setPasswordError(passwordChangeError(error))
+    } finally {
+      setPasswordSaving(false)
     }
   }
 
@@ -192,6 +268,44 @@ export function ProfilePage() {
             <Button type="submit" loading={saving}>
               Enregistrer les modifications
             </Button>
+          </div>
+        </form>
+      </Card>
+      <Card className="mt-6 max-w-3xl p-5 sm:p-8">
+        <div className="mb-5">
+          <h2 className="font-heading text-lg font-semibold text-slate-900">Changer mon mot de passe</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Confirmez votre mot de passe actuel. Le nouveau doit contenir au moins 10 caractères,
+            une minuscule, une majuscule, un chiffre et un caractère spécial.
+          </p>
+        </div>
+        <form className="space-y-5" onSubmit={handlePasswordSubmit(changePassword)} noValidate>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label htmlFor="currentPassword" required>Mot de passe actuel</Label>
+              <Input id="currentPassword" type="password" autoComplete="current-password" {...registerPassword('currentPassword')} />
+              {passwordErrors.currentPassword && (
+                <p className="mt-1.5 text-xs text-danger-700" role="alert">{passwordErrors.currentPassword.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="newPassword" required>Nouveau mot de passe</Label>
+              <Input id="newPassword" type="password" autoComplete="new-password" {...registerPassword('newPassword')} />
+              {passwordErrors.newPassword && (
+                <p className="mt-1.5 text-xs text-danger-700" role="alert">{passwordErrors.newPassword.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword" required>Confirmer le nouveau mot de passe</Label>
+              <Input id="confirmPassword" type="password" autoComplete="new-password" {...registerPassword('confirmPassword')} />
+              {passwordErrors.confirmPassword && (
+                <p className="mt-1.5 text-xs text-danger-700" role="alert">{passwordErrors.confirmPassword.message}</p>
+              )}
+            </div>
+          </div>
+          {passwordError && <p className="text-sm text-danger-700" role="alert">{passwordError}</p>}
+          <div className="flex justify-end border-t border-slate-200 pt-5">
+            <Button type="submit" loading={passwordSaving}>Mettre à jour le mot de passe</Button>
           </div>
         </form>
       </Card>
