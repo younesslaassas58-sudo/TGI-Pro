@@ -13,7 +13,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-navy-900 text-white shadow-sm hover:bg-navy-800 disabled:bg-navy-400',
+  primary:
+    'bg-gradient-to-br from-navy-900 via-navy-900 to-navy-800 text-white shadow-[0_6px_16px_rgba(11,31,58,0.16)] hover:-translate-y-0.5 hover:shadow-[0_9px_22px_rgba(11,31,58,0.22)] active:translate-y-0 disabled:from-navy-400 disabled:to-navy-500',
   secondary: 'bg-gold-500 text-white shadow-sm hover:bg-gold-600 disabled:bg-gold-300',
   outline:
     'border border-slate-300 bg-white text-navy-900 hover:border-navy-300 hover:bg-slate-50 disabled:text-slate-400',

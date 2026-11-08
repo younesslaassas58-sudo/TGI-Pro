@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasProfile() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActive() {
+      return hasProfile() && userProfile().active == true;
+    }
+
+    function role() {
+      return isActive() ? userProfile().role : null;
+    }
+
+    function isDirector() {
+      return isActive() && role() == 'directeur';
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isActive());
+      allow create: if isDirector();
+      allow update: if isDirector()
+        || (
+          isActive()
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['displayName', 'phone', 'photoURL'])
+        );
+      allow delete: if false;
+    }
+
+    match /{collection}/{document=**} {
+      allow read, write: if collection != 'users' && isActive();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -113,6 +113,77 @@ a {
   outline-offset: 2px;
 }
 
+.login-panel {
+  background:
+    radial-gradient(ellipse at 18% 44%, rgb(29 56 88 / 24%), transparent 58%),
+    linear-gradient(138deg, #061225 0%, #0b1f3a 54%, #102541 100%);
+}
+
+.login-grid {
+  background-image:
+    linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), rgb(207 220 236 / 9%) 100%),
+    linear-gradient(0deg, transparent 0, transparent calc(100% - 1px), rgb(207 220 236 / 7%) 100%);
+  background-size: 76px 76px;
+  mask-image: linear-gradient(115deg, transparent 8%, #000 48%, transparent 92%);
+}
+
+.login-glow {
+  border: 1px solid rgb(201 162 39 / 14%);
+  background: radial-gradient(circle, rgb(201 162 39 / 5%), transparent 68%);
+  box-shadow:
+    0 0 0 34px rgb(201 162 39 / 2%),
+    0 0 0 70px rgb(201 162 39 / 1.5%);
+}
+
+.login-enter {
+  animation: login-entrance 560ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.sidebar-surface {
+  background:
+    radial-gradient(ellipse at 6% 0%, rgb(31 56 83 / 36%), transparent 42%),
+    linear-gradient(180deg, #09182c 0%, #071326 100%);
+}
+
+.welcome-panel {
+  background:
+    radial-gradient(ellipse at 90% 15%, rgb(30 66 103 / 55%), transparent 52%),
+    linear-gradient(120deg, #061225 0%, #0b1f3a 68%, #102541 100%);
+}
+
+.welcome-lines {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 38px,
+    rgb(255 255 255 / 5%) 39px,
+    transparent 40px
+  );
+  mask-image: linear-gradient(90deg, transparent, #000 75%);
+}
+
+@keyframes login-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
