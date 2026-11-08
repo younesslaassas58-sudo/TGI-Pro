@@ -1,0 +1,131 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/plus-jakarta-sans';
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter Variable', Inter, sans-serif;
+  --font-heading: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
+
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e3ee;
+  --color-navy-200: #b7c9dc;
+  --color-navy-300: #8ca8c5;
+  --color-navy-400: #5e83a8;
+  --color-navy-500: #3c6388;
+  --color-navy-600: #294c70;
+  --color-navy-700: #1b3858;
+  --color-navy-800: #122a46;
+  --color-navy-900: #0b1f3a;
+  --color-navy-950: #061225;
+
+  --color-gold-50: #fbf8eb;
+  --color-gold-100: #f5edc9;
+  --color-gold-200: #ebdc94;
+  --color-gold-300: #dfc35c;
+  --color-gold-400: #d2ad39;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a77c1c;
+  --color-gold-700: #855b1a;
+  --color-gold-800: #6f491d;
+  --color-gold-900: #603d1d;
+
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-500: #10b981;
+  --color-success-700: #047857;
+  --color-success-900: #064e3b;
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-500: #f59e0b;
+  --color-warning-700: #b45309;
+  --color-warning-900: #78350f;
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-500: #ef4444;
+  --color-danger-700: #b91c1c;
+  --color-danger-900: #7f1d1d;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 12px 32px rgb(11 31 58 / 8%);
+  --shadow-soft: 0 4px 16px rgb(11 31 58 / 8%);
+}
+
+:root {
+  color-scheme: light;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --border-default: #e2e8f0;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --surface: #0f172a;
+  --surface-muted: #1e293b;
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-default: #334155;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--surface-muted);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: #fff;
+  background: #294c70;
+}
+
+:focus-visible {
+  outline: 3px solid rgb(201 162 39 / 65%);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: #cbd5e1;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  background-clip: padding-box;
+}
