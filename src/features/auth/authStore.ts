@@ -147,9 +147,12 @@ export function initializeAuthListener(): () => void {
             displayName:
               typeof data.displayName === 'string' && data.displayName.trim()
                 ? data.displayName
-                : firebaseUser.displayName ?? firebaseUser.email ?? '',
+                : '',
             role: data.role,
             active: true,
+            ...(data.civilite === 'M.' || data.civilite === 'Mme' || data.civilite === 'Mlle'
+              ? { civilite: data.civilite }
+              : {}),
             ...(typeof data.photoURL === 'string' ? { photoURL: data.photoURL } : {}),
             ...(typeof data.phone === 'string' ? { phone: data.phone } : {}),
           }

@@ -30,6 +30,13 @@ const readOnly: ModulePermissions = {
   supprimer: false,
 }
 
+const manageWithoutDelete: ModulePermissions = {
+  voir: true,
+  creer: true,
+  modifier: true,
+  supprimer: false,
+}
+
 const fullAccess: ModulePermissions = {
   voir: true,
   creer: true,
@@ -68,8 +75,8 @@ export const permissions: Record<UserRole, PermissionMatrix> = {
     parametres: fullAccess,
   }),
   commercial: matrixFor({
-    clients: fullAccess,
-    parc: fullAccess,
+    clients: manageWithoutDelete,
+    parc: manageWithoutDelete,
     techniciens: readOnly,
     interventions: readOnly,
     recouvrement: {
@@ -84,6 +91,7 @@ export const permissions: Record<UserRole, PermissionMatrix> = {
     stock: readOnly,
   }),
   technicien: matrixFor({
+    clients: readOnly,
     parc: readOnly,
     interventions: {
       voir: true,

@@ -10,9 +10,11 @@ import { useAuth, updateAuthProfile } from '@/features/auth/authStore'
 import { useToast } from '@/components/ui'
 import { db } from '@/lib/firebase'
 import type { UserProfile } from '@/types/user'
+import { roleLabel } from '@/lib/user'
 
 const profileSchema = z.object({
   displayName: z.string().trim().min(2, 'Le nom doit contenir au moins 2 caractères.'),
+  civilite: z.enum(['M.', 'Mme', 'Mlle']),
   phone: z.string().trim().max(30, 'Le numéro de téléphone est trop long.'),
 })
 
@@ -98,6 +100,7 @@ export function ProfilePage() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: profile?.displayName ?? '',
+      civilite: profile?.civilite ?? 'M.',
       phone: profile?.phone ?? '',
     },
   })
@@ -123,6 +126,7 @@ export function ProfilePage() {
     try {
       const changes = {
         displayName: values.displayName.trim(),
+        civilite: values.civilite,
         phone: values.phone.trim() || deleteField(),
         photoURL: photoURL || deleteField(),
       }
@@ -131,6 +135,7 @@ export function ProfilePage() {
       const updatedProfile: UserProfile = {
         ...profile,
         displayName: values.displayName.trim(),
+        civilite: values.civilite,
       }
       if (values.phone.trim()) updatedProfile.phone = values.phone.trim()
       else delete updatedProfile.phone
@@ -197,6 +202,18 @@ export function ProfilePage() {
           </section>
 
           <section className="grid gap-5 sm:grid-cols-2" aria-label="Informations personnelles">
+            <div>
+              <Label htmlFor="civilite">Civilité</Label>
+              <select
+                id="civilite"
+                className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
+                {...register('civilite')}
+              >
+                <option value="M.">M.</option>
+                <option value="Mme">Mme</option>
+                <option value="Mlle">Mlle</option>
+              </select>
+            </div>
             <div className="sm:col-span-2">
               <Label htmlFor="displayName" required>
                 Nom affiché
@@ -221,6 +238,14 @@ export function ProfilePage() {
               <Label htmlFor="email">Adresse e-mail</Label>
               <Input id="email" type="email" value={profile?.email ?? ''} readOnly />
             </div>
+            {profile && (
+              <div>
+                <Label>Rôle</Label>
+                <p className="flex min-h-11 items-center text-sm font-medium text-slate-700">
+                  {roleLabel(profile.role)}
+                </p>
+              </div>
+            )}
           </section>
 
           <div className="flex flex-col-reverse justify-between gap-4 border-t border-slate-200 pt-5 sm:flex-row sm:items-center">

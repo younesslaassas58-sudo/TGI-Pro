@@ -4,6 +4,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Badge } from '@/components/ui'
 import { useToast } from '@/components/ui'
 import { useAuth } from '@/features/auth/authStore'
+import { displayNameOrEmail, roleLabel } from '@/lib/user'
 import { Sidebar } from './Sidebar'
 
 const pageTitles: Record<string, string> = {
@@ -22,12 +23,6 @@ const pageTitles: Record<string, string> = {
   '/acces-refuse': 'Accès refusé',
 }
 
-const roleLabels = {
-  directeur: 'Directeur',
-  commercial: 'Commercial',
-  technicien: 'Technicien',
-} as const
-
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuPath, setUserMenuPath] = useState<string | null>(null)
@@ -38,6 +33,7 @@ export function AppLayout() {
   const toast = useToast()
   const pageTitle = pageTitles[location.pathname] ?? 'TGI-Pro'
   const userMenuOpen = userMenuPath === location.pathname
+  const userName = profile ? displayNameOrEmail(profile) : ''
 
   useEffect(() => {
     if (!userMenuOpen) return
@@ -91,19 +87,19 @@ export function AppLayout() {
                 className="flex items-center gap-2 rounded-xl border border-transparent p-1.5 text-left transition duration-200 hover:border-slate-200 hover:bg-white hover:shadow-sm sm:gap-3 sm:px-2"
                 aria-haspopup="menu"
                 aria-expanded={userMenuOpen}
-                aria-label={`Menu utilisateur : ${profile.displayName}`}
+                aria-label={`Menu utilisateur : ${userName}`}
                 onClick={() => setUserMenuPath((value) => (value === location.pathname ? null : location.pathname))}
               >
                 <Avatar name={profile.displayName} src={profile.photoURL} size="sm" />
-                <span className="hidden max-w-36 sm:block">
+                <span className="hidden min-w-0 max-w-28 sm:block sm:max-w-36 md:max-w-48">
                   <span className="block truncate text-xs font-semibold text-slate-800">
-                    {profile.displayName}
+                    {userName}
                   </span>
                   <Badge
                     className="mt-1"
                     variant={profile.role === 'directeur' ? 'gold' : 'default'}
                   >
-                    {roleLabels[profile.role]}
+                    {roleLabel(profile.role)}
                   </Badge>
                 </span>
                 <ChevronDown
@@ -128,14 +124,14 @@ export function AppLayout() {
                       <Avatar name={profile.displayName} src={profile.photoURL} size="md" />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-800">
-                          {profile.displayName}
+                          {userName}
                         </p>
                         <p className="truncate text-xs text-slate-500">{profile.email}</p>
                         <Badge
                           className="mt-1.5"
                           variant={profile.role === 'directeur' ? 'gold' : 'default'}
                         >
-                          {roleLabels[profile.role]}
+                          {roleLabel(profile.role)}
                         </Badge>
                       </div>
                     </div>

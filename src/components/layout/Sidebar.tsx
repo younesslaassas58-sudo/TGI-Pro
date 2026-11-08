@@ -20,6 +20,7 @@ import { Avatar, Badge } from '@/components/ui'
 import { useAuth } from '@/features/auth/authStore'
 import { usePermission } from '@/features/auth/usePermission'
 import type { AppModule } from '@/lib/permissions'
+import { displayNameOrEmail, roleLabel } from '@/lib/user'
 import { cn } from '@/lib/utils'
 
 interface NavigationItem {
@@ -122,9 +123,6 @@ function NavigationLink({
 export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const profile = useAuth((state) => state.profile)
-  const roleLabel = profile
-    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
-    : ''
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -220,9 +218,11 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                 className="ring-1 ring-white/15"
               />
               <div className={cn('min-w-0 flex-1', collapsed && 'lg:hidden')}>
-                <p className="truncate text-xs font-semibold text-slate-100">{profile.displayName}</p>
+                <p className="truncate text-xs font-semibold text-slate-100">
+                  {displayNameOrEmail(profile)}
+                </p>
                 <Badge className="mt-1 border-white/10 bg-white/[0.08] text-[10px] text-slate-300 ring-white/10">
-                  {roleLabel}
+                  {roleLabel(profile.role)}
                 </Badge>
               </div>
               <Link

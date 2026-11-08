@@ -27,6 +27,14 @@ service cloud.firestore {
       return isActive() && role() == 'directeur';
     }
 
+    function canCreateDocuments() {
+      return isActive() && role() in ['directeur', 'commercial'];
+    }
+
+    function canManageClientsAndFleet() {
+      return canCreateDocuments();
+    }
+
     match /users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isActive());
       allow create: if isDirector();
@@ -35,13 +43,81 @@ service cloud.firestore {
           isActive()
           && request.auth.uid == uid
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['displayName', 'phone', 'photoURL'])
+            .hasOnly(['displayName', 'phone', 'photoURL', 'civilite'])
         );
       allow delete: if false;
     }
 
+    match /settings/{settingId} {
+      allow read: if isActive();
+      allow create, update: if settingId == 'company' && isDirector();
+      allow delete: if false;
+    }
+
+    match /settings/counters/items/{counterId} {
+      allow read: if isActive();
+      allow create: if canCreateDocuments()
+        && request.resource.data.keys().hasOnly(['value'])
+        && request.resource.data.value is int
+        && request.resource.data.value == 1;
+      allow update: if canCreateDocuments()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['value'])
+        && resource.data.value is int
+        && request.resource.data.value is int
+        && request.resource.data.value == resource.data.value + 1;
+      allow delete: if false;
+    }
+
+    match /clients/{clientId} {
+      allow read: if isActive();
+      allow create: if canManageClientsAndFleet()
+        && request.resource.data.id == clientId
+        && request.resource.data.code is string
+        && request.resource.data.code.size() > 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if isActive()
+        && (
+          role() == 'directeur'
+          || role() == 'commercial'
+        )
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isDirector();
+    }
+
+    match /ascenseurs/{ascenseurId} {
+      allow read: if isActive();
+      allow create: if canManageClientsAndFleet()
+        && request.resource.data.id == ascenseurId
+        && request.resource.data.code is string
+        && request.resource.data.code.size() > 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.resource.data.updatedAt;
+      allow update: if isActive()
+        && (
+          role() == 'directeur'
+          || role() == 'commercial'
+        )
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isDirector();
+    }
+
     match /{collection}/{document=**} {
-      allow read, write: if collection != 'users' && isActive();
+      allow read, write: if collection != 'users'
+        && collection != 'settings'
+        && collection != 'clients'
+        && collection != 'ascenseurs'
+        && isActive();
     }
 
     match /{document=**} {

@@ -13,6 +13,7 @@ import { Badge, Card, EmptyState } from '@/components/ui'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth } from '@/features/auth/authStore'
 import { hasPermission, type AppModule } from '@/lib/permissions'
+import { displayNameOrEmail, roleLabel } from '@/lib/user'
 
 const temporaryStats = [
   {
@@ -74,7 +75,8 @@ const quickActions: {
 
 export function DashboardPage() {
   const profile = useAuth((state) => state.profile)
-  const firstName = profile?.displayName.trim().split(/\s+/)[0] || 'bienvenue'
+  const name = profile ? displayNameOrEmail(profile) : 'bienvenue'
+  const civilite = profile?.civilite ?? 'M.'
   const today = new Intl.DateTimeFormat('fr-MA', {
     weekday: 'long',
     day: 'numeric',
@@ -104,9 +106,12 @@ export function DashboardPage() {
               <span className="text-xs capitalize text-slate-400">{today}</span>
             </div>
             <h2 className="mt-5 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-              Bonjour, {firstName}
+              Bonjour {civilite} {name}
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
+              {profile && <>{roleLabel(profile.role)} · </>}
+              <span className="capitalize">{today}</span>
+              <span className="mx-1.5">·</span>
               Retrouvez ici les repères essentiels de votre activité TGI Ascenseurs.
             </p>
           </div>

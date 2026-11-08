@@ -4,10 +4,20 @@ import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { RoleGuard } from '@/components/layout/RoleGuard'
 import { AccessDeniedPage } from '@/app/pages/AccessDeniedPage'
 import { DashboardPage } from '@/app/pages/DashboardPage'
-import { ModulePage } from '@/app/pages/ModulePage'
-import { NotFoundPage } from '@/app/pages/NotFoundPage'
 import { ProfilePage } from '@/app/pages/ProfilePage'
 import { LoginPage } from '@/features/auth/LoginPage'
+import {
+  AscenseurDetailPage,
+  ClientDetailPage,
+  ClientsPage,
+  CompanySettingsPage,
+  DocumentDemoPage,
+  DocumentEditorPage,
+  LazyPage,
+  ModulePage,
+  ParcPage,
+} from '@/app/lazyPages'
+import { NotFoundPage } from '@/app/pages/NotFoundPage'
 
 export const router = createBrowserRouter([
   {
@@ -26,7 +36,15 @@ export const router = createBrowserRouter([
         path: 'clients',
         element: (
           <RoleGuard module="clients">
-            <ModulePage title="Clients" description="Gérez les comptes et les contacts clients." />
+            <LazyPage><ClientsPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'clients/:id',
+        element: (
+          <RoleGuard module="clients">
+            <LazyPage><ClientDetailPage /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -34,7 +52,15 @@ export const router = createBrowserRouter([
         path: 'parc',
         element: (
           <RoleGuard module="parc">
-            <ModulePage title="Parc d’ascenseurs" description="Consultez le parc des installations." />
+            <LazyPage><ParcPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'parc/:id',
+        element: (
+          <RoleGuard module="parc">
+            <LazyPage><AscenseurDetailPage /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -42,7 +68,7 @@ export const router = createBrowserRouter([
         path: 'techniciens',
         element: (
           <RoleGuard module="techniciens">
-            <ModulePage title="Techniciens" description="Retrouvez les équipes techniques." />
+            <LazyPage><ModulePage title="Techniciens" description="Retrouvez les équipes techniques." /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -50,7 +76,7 @@ export const router = createBrowserRouter([
         path: 'interventions',
         element: (
           <RoleGuard module="interventions">
-            <ModulePage title="Interventions" description="Suivez les opérations sur le terrain." />
+            <LazyPage><ModulePage title="Interventions" description="Suivez les opérations sur le terrain." /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -58,7 +84,7 @@ export const router = createBrowserRouter([
         path: 'recouvrement',
         element: (
           <RoleGuard module="recouvrement">
-            <ModulePage title="Recouvrement" description="Suivez les éléments de recouvrement." />
+            <LazyPage><ModulePage title="Recouvrement" description="Suivez les éléments de recouvrement." /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -66,7 +92,7 @@ export const router = createBrowserRouter([
         path: 'devis',
         element: (
           <RoleGuard module="devis">
-            <ModulePage title="Devis" description="Consultez et gérez les devis." />
+            <LazyPage><ModulePage title="Devis" description="Consultez et gérez les devis." /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -74,7 +100,7 @@ export const router = createBrowserRouter([
         path: 'commandes',
         element: (
           <RoleGuard module="commandes">
-            <ModulePage title="Bons de commande" description="Suivez les bons de commande." />
+            <LazyPage><ModulePage title="Bons de commande" description="Suivez les bons de commande." /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -82,7 +108,7 @@ export const router = createBrowserRouter([
         path: 'livraisons',
         element: (
           <RoleGuard module="livraisons">
-            <ModulePage title="Bons de livraison" description="Consultez les bons de livraison." />
+            <LazyPage><ModulePage title="Bons de livraison" description="Consultez les bons de livraison." /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -90,7 +116,7 @@ export const router = createBrowserRouter([
         path: 'stock',
         element: (
           <RoleGuard module="stock">
-            <ModulePage title="Stock" description="Consultez les articles et leur disponibilité." />
+            <LazyPage><ModulePage title="Stock" description="Consultez les articles et leur disponibilité." /></LazyPage>
           </RoleGuard>
         ),
       },
@@ -98,8 +124,22 @@ export const router = createBrowserRouter([
         path: 'parametres',
         element: (
           <RoleGuard module="parametres">
-            <ModulePage title="Paramètres" description="Configuration de l’application." />
+            <LazyPage><CompanySettingsPage /></LazyPage>
           </RoleGuard>
+        ),
+      },
+      {
+        path: 'documents/demo',
+        element: (
+          <RoleGuard module="devis">
+            <LazyPage><DocumentDemoPage /></LazyPage>
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'documents/editor',
+        element: (
+          <LazyPage><DocumentEditorPage /></LazyPage>
         ),
       },
       { path: 'profil', element: <ProfilePage /> },

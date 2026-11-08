@@ -9,9 +9,10 @@ export interface ModalProps {
   title: string
   children: ReactNode
   className?: string
+  beforeClose?: () => boolean
 }
 
-export function Modal({ open, onClose, title, children, className }: ModalProps) {
+export function Modal({ open, onClose, title, children, className, beforeClose }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
 
@@ -23,6 +24,11 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     if (!open && dialog.open) dialog.close()
   }, [open])
 
+  function closeDialog() {
+    if (beforeClose && !beforeClose()) return
+    dialogRef.current?.close()
+  }
+
   return (
     <dialog
       ref={dialogRef}
@@ -32,8 +38,11 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       )}
       aria-labelledby={titleId}
       onClose={onClose}
+      onCancel={(event) => {
+        if (beforeClose && !beforeClose()) event.preventDefault()
+      }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) dialogRef.current?.close()
+        if (event.target === event.currentTarget) closeDialog()
       }}
     >
       <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
@@ -45,7 +54,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           variant="ghost"
           size="sm"
           aria-label="Fermer la fenêtre"
-          onClick={() => dialogRef.current?.close()}
+          onClick={closeDialog}
         >
           <X aria-hidden="true" size={18} />
         </Button>
